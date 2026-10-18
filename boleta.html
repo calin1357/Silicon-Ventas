@@ -3,62 +3,59 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Portal de Clientes - Silicon Ventas</title>
+    <title>Consulta de Boleta - Silicon Ventas</title>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <style>
-        body { font-family: 'Inter', system-ui, sans-serif; background: #f1f5f9; padding: 20px; display: flex; justify-content: center; margin: 0; }
-        .container { max-width: 600px; width: 100%; }
+        :root { --bg: #f1f5f9; --panel: #fff; --ink: #0f172a; --muted: #64748b; --line: #e2e8f0; --brand: #2563eb; }
+        * { box-sizing: border-box; }
+        body { margin: 0; font-family: 'Inter', system-ui, sans-serif; background: var(--bg); color: var(--ink); display: flex; justify-content: center; align-items: flex-start; min-height: 100vh; padding: 20px; }
+        .container { width: 100%; max-width: 500px; }
         
-        /* Estilos del Buscador */
-        .search-card { background: #fff; padding: 30px; border-radius: 12px; box-shadow: 0 10px 30px rgba(0,0,0,.1); margin-bottom: 20px; text-align: center; }
-        .search-card h1 { margin: 0 0 10px; font-size: 24px; color: #0f172a; }
-        .search-card p { color: #64748b; font-size: 14px; margin-bottom: 20px; }
-        .search-card input { width: 100%; padding: 12px; border: 1px solid #e2e8f0; border-radius: 8px; font-size: 16px; margin-bottom: 15px; box-sizing: border-box; text-align: center; letter-spacing: 2px; }
-        .search-card button { width: 100%; padding: 12px; background: #2563eb; color: #fff; border: 0; border-radius: 8px; font-size: 16px; font-weight: 600; cursor: pointer; }
-        .search-card button:hover { background: #1d4ed8; }
+        /* Tarjeta de Validación DNI */
+        .auth-card { background: var(--panel); padding: 30px; border-radius: 12px; box-shadow: 0 10px 30px rgba(0,0,0,.05); text-align: center; }
+        .auth-card h1 { margin: 0 0 10px; font-size: 22px; }
+        .auth-card p { color: var(--muted); font-size: 14px; margin-bottom: 20px; }
+        .auth-card input { width: 100%; padding: 14px; border: 1px solid var(--line); border-radius: 8px; font-size: 18px; text-align: center; letter-spacing: 2px; margin-bottom: 15px; outline: none; }
+        .auth-card input:focus { border-color: var(--brand); box-shadow: 0 0 0 3px rgba(37,99,235,.15); }
+        .auth-card button { width: 100%; padding: 14px; background: var(--brand); color: #fff; border: 0; border-radius: 8px; font-size: 16px; font-weight: 600; cursor: pointer; }
+        .auth-card button:hover { background: #1d4ed8; }
+        .error-msg { color: #dc2626; font-size: 13px; margin-top: 15px; display: none; }
 
-        /* Estilos de la Boleta */
-        .boleta-card { background: #fff; padding: 30px; border-radius: 12px; box-shadow: 0 10px 30px rgba(0,0,0,.1); margin-bottom: 20px; font-family: 'Courier New', monospace; color: #111; }
+        /* Tarjeta de Boleta */
+        .boleta-card { background: var(--panel); padding: 30px; border-radius: 12px; box-shadow: 0 10px 30px rgba(0,0,0,.05); font-family: 'Courier New', monospace; color: #111; display: none; }
         .boleta-head { text-align: center; border-bottom: 2px dashed #999; padding-bottom: 12px; margin-bottom: 12px; }
         .boleta-head h2 { margin: 0; font-size: 18px; font-family: 'Inter', sans-serif; }
         .boleta-head p { margin: 2px 0; font-size: 12px; color: #555; font-family: 'Inter', sans-serif; }
         .boleta-num { font-size: 13px; font-weight: bold; margin-top: 6px; }
-        .boleta-row { display: flex; justify-content: space-between; font-size: 12px; padding: 4px 0; border-bottom: 1px dotted #ddd; }
+        .boleta-row { display: flex; justify-content: space-between; font-size: 12px; padding: 6px 0; border-bottom: 1px dotted #ddd; }
         .boleta-row .k { color: #555; }
         .boleta-row .v { font-weight: bold; text-align: right; max-width: 60%; word-break: break-all; }
         .boleta-total { display: flex; justify-content: space-between; font-size: 16px; font-weight: bold; margin-top: 14px; padding-top: 10px; border-top: 2px solid #111; }
         .boleta-foot { text-align: center; font-size: 11px; color: #777; margin-top: 18px; border-top: 1px dashed #999; padding-top: 10px; }
         .boleta-foot .vendedor { font-size: 12px; color: #111; font-weight: bold; margin-top: 6px; }
         
-        .btn-volver { display: block; text-align: center; margin-top: 15px; color: #2563eb; text-decoration: none; font-size: 14px; font-weight: 600; }
-        .btn-volver:hover { text-decoration: underline; }
-        .error { text-align: center; color: #dc2626; font-size: 14px; margin-top: 15px; }
-        .info-text { text-align: center; color: #16a34a; font-size: 14px; margin-bottom: 15px; font-weight: 600; }
+        @media (max-width: 600px) {
+            .auth-card, .boleta-card { padding: 20px; }
+            .boleta-row { flex-direction: column; align-items: flex-start; }
+            .boleta-row .v { text-align: left; max-width: 100%; margin-top: 2px; }
+        }
     </style>
 </head>
 <body>
 
 <div class="container">
-    <!-- Buscador (visible si no hay ID de venta) -->
-    <div id="searchSection" class="search-card" style="display: none;">
-        <h1>🛡️ Silicon Ventas</h1>
-        <p>Ingresa tu número de DNI para consultar todas tus compras y boletas.</p>
+    <!-- Sección de Validación DNI -->
+    <div id="authSection" class="auth-card">
+        <h1>🛡️ Consulta tu Boleta</h1>
+        <p>Para proteger tu privacidad, por favor ingresa el <strong>DNI de la persona que realizó la compra</strong> para visualizar la boleta digital.</p>
         <input type="text" id="inputDni" placeholder="Ej. 12345678" maxlength="8" inputmode="numeric" oninput="this.value = this.value.replace(/\D/g,'')" />
-        <button onclick="buscarPorDni()">Buscar mis compras</button>
-        <div id="searchMsg"></div>
+        <button onclick="validarDni()">Ver mi Boleta</button>
+        <div id="errorMsg" class="error-msg">El DNI no coincide con el comprador de esta boleta.</div>
     </div>
 
-    <!-- Resultados de la búsqueda (lista de boletas) -->
-    <div id="resultsSection" style="display: none;">
-        <div class="info-text" id="resultsTitle"></div>
-        <div id="boletasContainer"></div>
-        <a href="boleta.html" class="btn-volver">← Buscar otro DNI</a>
-    </div>
-
-    <!-- Boleta individual (visible si viene por QR) -->
-    <div id="singleBoletaSection" style="display: none;">
-        <div id="singleBoletaContainer"></div>
-        <a href="boleta.html" class="btn-volver">← Ir al portal de clientes</a>
+    <!-- Sección de la Boleta (oculta al inicio) -->
+    <div id="boletaSection" class="boleta-card">
+        <div id="boletaContent"></div>
     </div>
 </div>
 
@@ -67,17 +64,52 @@
     const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRiZXd1bGhjYmhnZndsY2hpcmpnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTIyNTg3MTEsImV4cCI6MjEwNzgzNDcxMX0.ia2nN9AST_wyq8JykP0xPBMoICXc0U33k72uAPBCy6U';
     const sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
-    // Función para formatear dinero
+    const params = new URLSearchParams(window.location.search);
+    const ventaId = params.get('id');
+    const correlativo = params.get('corr') || 'Digital';
+
     const fmtMoney = (n) => 'S/ ' + Number(n || 0).toFixed(2);
-    // Función para formatear fecha
     const fmtDate = (d) => new Date(d).toLocaleDateString('es-PE', { year:'numeric', month:'short', day:'numeric' });
 
-    // Genera el HTML de una boleta individual
-    function generarHtmlBoleta(v, correlativo) {
+    async function validarDni() {
+        const dni = document.getElementById('inputDni').value.trim();
+        const err = document.getElementById('errorMsg');
+        if (dni.length !== 8) {
+            err.textContent = 'Por favor, ingresa un DNI válido de 8 dígitos.';
+            err.style.display = 'block';
+            return;
+        }
+
+        err.style.display = 'none';
+        
+        // Llamamos a la función segura de la BD
+        const { data, error } = await sb.rpc('consultar_boleta_por_dni', { 
+            p_venta_id: ventaId, 
+            p_dni: dni 
+        });
+
+        if (error) {
+            console.error(error);
+            err.textContent = 'Error de conexión. Intenta de nuevo.';
+            err.style.display = 'block';
+            return;
+        }
+
+        if (!data || data.length === 0) {
+            err.textContent = 'El DNI no coincide con el comprador de esta boleta.';
+            err.style.display = 'block';
+            return;
+        }
+
+        // DNI correcto: Mostramos la boleta
+        const v = data[0];
+        document.getElementById('authSection').style.display = 'none';
+        document.getElementById('boletaSection').style.display = 'block';
+
         const lineas = [];
         if (v.cliente_dni) lineas.push(`<div class="boleta-row"><span class="k">DNI:</span><span class="v">${v.cliente_dni}</span></div>`);
-        lineas.push(`<div class="boleta-row"><span class="k">Cliente:</span><span class="v">${v.cliente_nombre || '—'}</span></div>`);
-        lineas.push(`<div class="boleta-row"><span class="k">Producto:</span><span class="v">${v.producto_nombre || '—'}</span></div>`);
+        lineas.push(`<div class="boleta-row"><span class="k">Cliente:</span><span class="v">${v.cliente_nombre}</span></div>`);
+        lineas.push(`<div class="boleta-row"><span class="k">Producto:</span><span class="v">${v.producto_nombre}</span></div>`);
         lineas.push(`<div class="boleta-row"><span class="k">Versión:</span><span class="v">${v.producto_version || '—'}</span></div>`);
         
         const tipoLabel = v.incluye_servicio ? 'Licencia e Instalación' : v.tipo_licencia;
@@ -86,106 +118,23 @@
         if (v.licencia_clave) lineas.push(`<div class="boleta-row"><span class="k">Licencia:</span><span class="v">${v.licencia_clave}</span></div>`);
         if (v.licencia_correo) lineas.push(`<div class="boleta-row"><span class="k">Correo Lic.:</span><span class="v">${v.licencia_correo}</span></div>`);
 
-        return `
-            <div class="boleta-card">
-                <div class="boleta-head">
-                    <h2>🛡️ Silicon Ventas</h2>
-                    <p>Servicios informáticos y licencias de software</p>
-                    <p class="boleta-num">Boleta N° ${correlativo || 'Digital'}</p>
-                    <p>Fecha: ${fmtDate(v.fecha_venta)}</p>
-                </div>
-                ${lineas.join('')}
-                <div class="boleta-total"><span>TOTAL</span><span>${fmtMoney(v.precio_venta)}</span></div>
-                <div class="boleta-foot">
-                    <p>Gracias por su compra</p>
-                    <p>Documento virtual — no válido como comprobante fiscal</p>
-                    <div class="vendedor">Vendedor: Juan Carlos Condor Irigoin</div>
-                    <div class="vendedor">Celular: 988932324</div>
-                </div>
+        document.getElementById('boletaContent').innerHTML = `
+            <div class="boleta-head">
+                <h2>🛡️ Silicon Ventas</h2>
+                <p>Servicios informáticos y licencias de software</p>
+                <p class="boleta-num">Boleta N° ${correlativo}</p>
+                <p>Fecha: ${fmtDate(v.fecha_venta)}</p>
+            </div>
+            ${lineas.join('')}
+            <div class="boleta-total"><span>TOTAL</span><span>${fmtMoney(v.precio_venta)}</span></div>
+            <div class="boleta-foot">
+                <p>Gracias por su compra</p>
+                <p>Documento virtual — no válido como comprobante fiscal</p>
+                <div class="vendedor">Vendedor: Juan Carlos Condor Irigoin</div>
+                <div class="vendedor">Celular: 988932324</div>
             </div>
         `;
     }
-
-    // Lógica principal al cargar la página
-    async function init() {
-        const params = new URLSearchParams(window.location.search);
-        const ventaId = params.get('id');
-        const correlativo = params.get('corr');
-
-        if (ventaId) {
-            // CASO 1: Viene por el QR (tiene ID de venta)
-            document.getElementById('singleBoletaSection').style.display = 'block';
-            
-            const { data, error } = await sb.rpc('consultar_compras_por_dni', { p_dni: '' }); // Dummy para inicializar
-            // Buscamos la venta específica por ID (usando la tabla directamente porque ya diste permiso de lectura)
-            const { data: v, error: err } = await sb
-                .from('ventas')
-                .select('*, clientes(nombre, dni), productos(nombre, version), licencias!ventas_licencia_id_fkey(clave, correo)')
-                .eq('id', ventaId)
-                .single();
-
-            if (err || !v) {
-                document.getElementById('singleBoletaContainer').innerHTML = '<div class="error">Boleta no encontrada o el enlace ha expirado.</div>';
-                return;
-            }
-
-            // Adaptamos los datos al formato de la función de render
-            const dataAdaptada = {
-                fecha_venta: v.fecha_venta,
-                cliente_dni: v.clientes?.dni,
-                cliente_nombre: v.clientes?.nombre,
-                producto_nombre: v.productos?.nombre,
-                producto_version: v.version || v.productos?.version,
-                precio_venta: v.precio_venta,
-                tipo_licencia: v.tipo_licencia,
-                incluye_servicio: v.incluye_servicio,
-                licencia_clave: v.licencias?.clave,
-                licencia_correo: v.licencias?.correo
-            };
-
-            document.getElementById('singleBoletaContainer').innerHTML = generarHtmlBoleta(dataAdaptada, correlativo);
-
-        } else {
-            // CASO 2: Portal público (sin ID). Mostrar buscador.
-            document.getElementById('searchSection').style.display = 'block';
-        }
-    }
-
-    // Función para buscar por DNI
-    async function buscarPorDni() {
-        const dni = document.getElementById('inputDni').value.trim();
-        const msg = document.getElementById('searchMsg');
-        if (dni.length !== 8) {
-            msg.innerHTML = '<div class="error">Por favor, ingresa un DNI válido de 8 dígitos.</div>';
-            return;
-        }
-
-        msg.innerHTML = '<div style="text-align:center;color:#64748b;margin-top:10px;">Buscando...</div>';
-
-        const { data, error } = await sb.rpc('consultar_compras_por_dni', { p_dni: dni });
-
-        if (error) {
-            msg.innerHTML = '<div class="error">Error al buscar. Intenta de nuevo.</div>';
-            console.error(error);
-            return;
-        }
-
-        if (!data || data.length === 0) {
-            msg.innerHTML = '<div class="error">No se encontraron compras registradas para este DNI.</div>';
-            return;
-        }
-
-        // Ocultar buscador y mostrar resultados
-        document.getElementById('searchSection').style.display = 'none';
-        document.getElementById('resultsSection').style.display = 'block';
-        document.getElementById('resultsTitle').textContent = `Compras encontradas para DNI: ${dni}`;
-
-        // Renderizar cada boleta
-        const container = document.getElementById('boletasContainer');
-        container.innerHTML = data.map(v => generarHtmlBoleta(v, 'Digital')).join('');
-    }
-
-    init();
 </script>
 </body>
 </html>
