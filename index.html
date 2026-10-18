@@ -61,6 +61,7 @@
 
   .btn { background: var(--brand); color: #fff; border: 0; padding: 9px 16px; border-radius: 8px; font-size: 13px; font-weight: 600; }
   .btn:hover { background: var(--brand-dark); }
+  .btn:disabled { background: #94a3b8; cursor: not-allowed; }
   .btn.secondary { background: #e2e8f0; color: var(--ink); }
   .btn.secondary:hover { background: #cbd5e1; }
   .btn.danger { background: var(--danger); }
@@ -103,6 +104,8 @@
   .form-grid input:focus, .form-grid select:focus, .form-grid textarea:focus { outline: none; border-color: var(--brand); box-shadow: 0 0 0 3px rgba(37,99,235,.12); }
   .form-grid textarea { resize: vertical; min-height: 70px; }
   .hint { font-size: 11px; color: var(--muted); margin-top: 3px; }
+  .hint.warn { color: var(--warn); }
+  .hint.ok { color: var(--ok); }
   .req { color: var(--danger); }
 
   #toast { position: fixed; bottom: 24px; right: 24px; display: flex; flex-direction: column; gap: 8px; z-index: 200; }
@@ -117,6 +120,11 @@
   .tabs { display: flex; gap: 6px; margin-bottom: 12px; flex-wrap: wrap; }
   .tab { padding: 7px 14px; border-radius: 999px; border: 1px solid var(--line); background: #fff; font-size: 13px; font-weight: 600; color: var(--muted); }
   .tab.active { background: var(--brand); color: #fff; border-color: var(--brand); }
+
+  .stock-box { background: #f8fafc; border: 1px solid var(--line); border-radius: 8px; padding: 10px 12px; font-size: 13px; margin-top: 4px; }
+  .stock-box.ok { background: #f0fdf4; border-color: #bbf7d0; color: #166534; }
+  .stock-box.warn { background: #fffbeb; border-color: #fde68a; color: #92400e; }
+  .stock-box.danger { background: #fef2f2; border-color: #fecaca; color: #991b1b; }
 
   /* BOLETA */
   #boletaRender { background: #fff; padding: 28px; font-family: 'Courier New', monospace; color: #111; }
@@ -225,7 +233,7 @@
           <button class="btn" onclick="openProductoModal()">+ Nuevo producto</button>
         </div>
         <div class="table-wrap"><table>
-          <thead><tr><th>Nombre</th><th>Categoría</th><th>Precio</th><th>Moneda</th><th>Tipo</th><th>Estado</th><th>Acciones</th></tr></thead>
+          <thead><tr><th>Nombre</th><th>Categoría</th><th>Precio</th><th>Moneda</th><th>Tipo</th><th>Stock</th><th>Estado</th><th>Acciones</th></tr></thead>
           <tbody id="productosTbody"></tbody>
         </table></div>
       </div>
@@ -245,11 +253,6 @@
             <option value="Perpetua">Perpetua</option>
             <option value="Suscripción">Suscripción</option>
           </select>
-          <select id="filtroPrueba" onchange="renderVentas()">
-            <option value="">Todas</option>
-            <option value="no">Solo ventas reales</option>
-            <option value="si">Solo pruebas</option>
-          </select>
           <select id="filtroEstado" onchange="renderVentas()">
             <option value="">Todos los estados</option>
             <option value="Activa">Activas</option>
@@ -259,7 +262,7 @@
         <div class="table-wrap"><table>
           <thead><tr>
             <th>Fecha</th><th>Cliente</th><th>Producto</th><th>Precio</th>
-            <th>Tipo</th><th>Caduca</th><th>Prueba</th><th>Estado</th><th>Acciones</th>
+            <th>Tipo</th><th>Caduca</th><th>Licencia</th><th>Estado</th><th>Acciones</th>
           </tr></thead>
           <tbody id="ventasTbody"></tbody>
         </table></div>
@@ -408,6 +411,16 @@
       <div class="form-grid">
         <div><label>Cliente <span class="req">*</span></label><select id="ventaCliente"></select></div>
         <div><label>Producto <span class="req">*</span></label><select id="ventaProducto" onchange="onProductoChange()"></select></div>
+        <div class="full">
+          <div id="ventaStockBox" class="stock-box">Selecciona un producto para ver el stock.</div>
+        </div>
+        <div class="full">
+          <label>Licencia a descontar</label>
+          <select id="ventaLicencia">
+            <option value="">Automática (la más antigua disponible)</option>
+          </select>
+          <div class="hint">Si dejas "Automática", la BD toma la licencia disponible más antigua. Puedes elegir una específica si lo prefieres.</div>
+        </div>
         <div><label>Precio de venta <span class="req">*</span></label><input id="ventaPrecio" type="number" step="0.01" value="0" /></div>
         <div><label>Moneda</label>
           <select id="ventaMoneda"><option value="PEN">PEN</option><option value="USD">USD</option><option value="EUR">EUR</option></select>
@@ -419,24 +432,14 @@
         <div><label>Versión</label><input id="ventaVersion" /></div>
         <div class="full"><label>Descripción</label><input id="ventaDescripcion" /></div>
         <div class="full"><label>Datos de licencia (clave/serial)</label><input id="ventaDatosLicencia" style="font-family:monospace" /></div>
-        <div class="full"><label>Observaciones de licencia</label><textarea id="ventaObsLicencia"></textarea></div>
         <div><label>Fecha de caducidad</label><input id="ventaCaducidad" type="date" /></div>
         <div><label>Correo de suscripción</label><input id="ventaCorreoSuscripcion" type="email" /></div>
         <div class="full"><label>Anotaciones</label><textarea id="ventaAnotaciones"></textarea></div>
-        <div class="full" style="display:flex;align-items:center;gap:8px">
-          <input type="checkbox" id="ventaVincularLic" style="width:auto" onchange="toggleLicenciaBox()" />
-          <label style="margin:0">Vincular licencia del pool</label>
-        </div>
-        <div class="full" id="ventaLicenciaBox" style="display:none">
-          <label>Licencia a asignar</label>
-          <select id="ventaLicencia"><option value="">— Selecciona licencia disponible —</option></select>
-          <div class="hint" id="ventaLicenciaHint"></div>
-        </div>
       </div>
     </div>
     <div class="modal-foot">
       <button class="btn secondary" onclick="closeModal('modalVenta')">Cancelar</button>
-      <button class="btn" onclick="saveVenta()">Guardar</button>
+      <button class="btn" id="btnGuardarVenta" onclick="saveVenta()">Guardar</button>
     </div>
   </div>
 </div>
@@ -574,6 +577,9 @@ function categoriaNombreDe(productoId) {
   if (!p) return '';
   const c = state.categorias.find(x => x.id === p.categoria_id);
   return c?.nombre || '';
+}
+function stockProducto(productoId) {
+  return state.licencias.filter(l => l.estado === 'Disponible' && l.producto_id === productoId).length;
 }
 
 // ============================================================
@@ -798,18 +804,24 @@ async function loadProductos() {
     .order('nombre');
   if (error) return toast('Error productos: ' + error.message, 'error');
   state.productos = data;
-  document.getElementById('productosTbody').innerHTML = data.map(p => `
-    <tr>
+  document.getElementById('productosTbody').innerHTML = data.map(p => {
+    const stock = stockProducto(p.id);
+    const stockBadge = stock > 0
+      ? `<span class="badge green">${stock}</span>`
+      : `<span class="badge red">0</span>`;
+    return `<tr>
       <td>${esc(p.nombre)}</td>
       <td>${esc(p.categorias?.nombre || '—')}</td>
       <td>${fmtMoney(p.precio_base, p.moneda || 'PEN')}</td>
       <td>${esc(p.moneda || 'PEN')}</td>
       <td>${esc(p.tipo_licencia)}</td>
+      <td>${stockBadge}</td>
       <td><span class="badge ${p.activo?'green':'gray'}">${p.activo?'Activo':'Inactivo'}</span></td>
       <td class="actions">
         <button class="btn small secondary" onclick="openProductoModal('${p.id}')">Editar</button>
       </td>
-    </tr>`).join('') || '<tr><td colspan="7" class="empty">Sin productos</td></tr>';
+    </tr>`;
+  }).join('') || '<tr><td colspan="8" class="empty">Sin productos</td></tr>';
 }
 function fillSelectsCategorias() {
   const cats = state.categorias.filter(c => c.activo);
@@ -870,7 +882,7 @@ async function saveProducto() {
 // ============================================================
 async function loadVentas() {
   const { data, error } = await sb.from('ventas')
-    .select('*, clientes(nombre), productos(nombre)')
+    .select('*, clientes(nombre), productos(nombre), licencias(clave, correo, link_descarga, tipo)')
     .order('fecha_venta', { ascending: false });
   if (error) return toast('Error ventas: ' + error.message, 'error');
   state.ventas = data;
@@ -879,14 +891,11 @@ async function loadVentas() {
 function renderVentas() {
   const fCliente = document.getElementById('filtroCliente').value;
   const fTipo = document.getElementById('filtroTipo').value;
-  const fPrueba = document.getElementById('filtroPrueba').value;
   const fEstado = document.getElementById('filtroEstado').value;
 
   let rows = state.ventas;
   if (fCliente) rows = rows.filter(v => v.cliente_id === fCliente);
   if (fTipo) rows = rows.filter(v => v.tipo_licencia === fTipo);
-  if (fPrueba === 'si') rows = rows.filter(v => v.es_prueba);
-  if (fPrueba === 'no') rows = rows.filter(v => !v.es_prueba);
   if (fEstado) rows = rows.filter(v => (v.estado || 'Activa') === fEstado);
 
   document.getElementById('ventasTbody').innerHTML = rows.map(v => {
@@ -896,6 +905,10 @@ function renderVentas() {
     const caducaBadge = v.fecha_caducidad
       ? `<span class="badge ${d < 0 ? 'red' : d <= 30 ? 'orange' : 'gray'}">${fmtDate(v.fecha_caducidad)}</span>`
       : '—';
+    const lic = v.licencias;
+    const licBadge = lic
+      ? `<span class="badge blue" title="${esc(lic.clave || lic.correo || lic.link_descarga || '')}">${lic.tipo === 'prueba' ? 'Prueba' : lic.tipo === 'pago' ? 'Pago' : 'Gratuita'}</span>`
+      : '—';
     return `<tr>
       <td>${fmtDate(v.fecha_venta)}</td>
       <td>${esc(v.clientes?.nombre || '—')}</td>
@@ -903,11 +916,10 @@ function renderVentas() {
       <td>${fmtMoney(v.precio_venta, v.moneda || 'PEN')}</td>
       <td>${esc(v.tipo_licencia)}</td>
       <td>${caducaBadge}</td>
-      <td>${v.es_prueba ? '<span class="badge blue">Sí</span>' : '—'}</td>
+      <td>${licBadge}</td>
       <td>${estadoBadge}</td>
       <td class="actions">
         <button class="btn small success" onclick="verBoleta('${v.id}')">🧾 Boleta</button>
-        <button class="btn small secondary" onclick="openVentaModal('${v.id}')">Editar</button>
         ${estado === 'Activa' ? `<button class="btn small ghost" onclick="openDevolucionModal('${v.id}')">Devolver</button>` : ''}
         <button class="btn small danger" onclick="eliminarVenta('${v.id}')">Eliminar</button>
       </td>
@@ -932,11 +944,9 @@ function openVentaModal(id=null) {
     document.getElementById('ventaVersion').value = v?.version || '';
     document.getElementById('ventaDescripcion').value = v?.descripcion || '';
     document.getElementById('ventaDatosLicencia').value = v?.datos_licencia || '';
-    document.getElementById('ventaObsLicencia').value = v?.observaciones_licencia || '';
     document.getElementById('ventaCaducidad').value = v?.fecha_caducidad || '';
     document.getElementById('ventaCorreoSuscripcion').value = v?.correo_suscripcion || '';
     document.getElementById('ventaAnotaciones').value = v?.anotaciones || '';
-    document.getElementById('ventaVincularLic').checked = false;
   } else {
     document.getElementById('ventaCliente').value = '';
     document.getElementById('ventaProducto').value = '';
@@ -947,13 +957,11 @@ function openVentaModal(id=null) {
     document.getElementById('ventaVersion').value = '';
     document.getElementById('ventaDescripcion').value = '';
     document.getElementById('ventaDatosLicencia').value = '';
-    document.getElementById('ventaObsLicencia').value = '';
     document.getElementById('ventaCaducidad').value = '';
     document.getElementById('ventaCorreoSuscripcion').value = '';
     document.getElementById('ventaAnotaciones').value = '';
-    document.getElementById('ventaVincularLic').checked = false;
   }
-  toggleLicenciaBox();
+  actualizarStockVenta();
   openModal('modalVenta');
 }
 
@@ -965,35 +973,43 @@ function onProductoChange() {
     document.getElementById('ventaMoneda').value = p.moneda || 'PEN';
     document.getElementById('ventaTipo').value = p.tipo_licencia;
   }
-  if (document.getElementById('ventaVincularLic').checked) {
-    llenarSelectLicenciasVenta();
-  }
+  actualizarStockVenta();
 }
 
-function llenarSelectLicenciasVenta() {
+function actualizarStockVenta() {
   const pid = document.getElementById('ventaProducto').value;
-  const hint = document.getElementById('ventaLicenciaHint');
+  const box = document.getElementById('ventaStockBox');
+  const btn = document.getElementById('btnGuardarVenta');
+  const selLic = document.getElementById('ventaLicencia');
+
   if (!pid) {
-    setOptions(document.getElementById('ventaLicencia'), [], 'id', () => '', '— Elige primero un producto —');
-    hint.textContent = 'Selecciona un producto para ver sus licencias disponibles.';
+    box.className = 'stock-box';
+    box.textContent = 'Selecciona un producto para ver el stock.';
+    setOptions(selLic, [], 'id', () => '', 'Automática (la más antigua disponible)');
+    btn.disabled = false;
     return;
   }
-  const disp = state.licencias.filter(l => l.estado === 'Disponible' && l.producto_id === pid);
-  setOptions(document.getElementById('ventaLicencia'), disp, 'id', l => {
-    const tipo = l.tipo === 'prueba' ? 'Prueba' : l.tipo === 'pago' ? 'Pago' : 'Gratuita';
-    return `${tipo} · ${l.clave || l.correo || l.link_descarga || '—'}`;
-  }, '— Selecciona licencia disponible —');
-  hint.textContent = `${disp.length} licencia(s) disponible(s) para este producto.`;
-}
 
-function toggleLicenciaBox() {
-  const checked = document.getElementById('ventaVincularLic').checked;
-  document.getElementById('ventaLicenciaBox').style.display = checked ? 'block' : 'none';
-  if (checked) llenarSelectLicenciasVenta();
+  const disp = state.licencias.filter(l => l.estado === 'Disponible' && l.producto_id === pid);
+  if (disp.length === 0) {
+    box.className = 'stock-box danger';
+    box.textContent = '⚠ Sin stock de licencias para este producto. Agrega una licencia en el módulo "Licencias" antes de vender.';
+    setOptions(selLic, [], 'id', () => '', 'Sin licencias disponibles');
+    btn.disabled = true;
+  } else {
+    box.className = 'stock-box ok';
+    box.textContent = `✅ ${disp.length} licencia(s) disponible(s) para este producto.`;
+    setOptions(selLic, disp, 'id', l => {
+      const t = l.tipo === 'prueba' ? 'Prueba' : l.tipo === 'pago' ? 'Pago' : 'Gratuita';
+      return `${t} · ${l.clave || l.correo || l.link_descarga || '—'}`;
+    }, 'Automática (la más antigua disponible)');
+    btn.disabled = false;
+  }
 }
 
 async function saveVenta() {
   const id = document.getElementById('ventaId').value;
+  const licId = document.getElementById('ventaLicencia').value || null;
   const payload = {
     cliente_id: document.getElementById('ventaCliente').value,
     producto_id: document.getElementById('ventaProducto').value,
@@ -1004,40 +1020,42 @@ async function saveVenta() {
     version: document.getElementById('ventaVersion').value.trim() || null,
     descripcion: document.getElementById('ventaDescripcion').value.trim() || null,
     datos_licencia: document.getElementById('ventaDatosLicencia').value.trim() || null,
-    observaciones_licencia: document.getElementById('ventaObsLicencia').value.trim() || null,
     fecha_caducidad: document.getElementById('ventaCaducidad').value || null,
     correo_suscripcion: document.getElementById('ventaCorreoSuscripcion').value.trim() || null,
     anotaciones: document.getElementById('ventaAnotaciones').value.trim() || null,
-    es_prueba: false,
   };
   if (!payload.cliente_id || !payload.producto_id) return toast('Cliente y producto son obligatorios', 'error');
 
-  let error, ventaId = id;
   if (id) {
-    ({ error } = await sb.from('ventas').update(payload).eq('id', id));
+    // Edición: no se vuelve a descontar stock; solo se actualizan datos.
+    const { error } = await sb.from('ventas').update(payload).eq('id', id);
+    if (error) return toast(error.message, 'error');
+    toast('Venta actualizada');
   } else {
-    payload.estado = 'Activa';
-    const res = await sb.from('ventas').insert(payload).select().single();
-    error = res.error;
-    ventaId = res.data?.id;
-  }
-  if (error) return toast(error.message, 'error');
-
-  const licId = document.getElementById('ventaLicencia').value;
-  if (licId && ventaId) {
-    const { error: e2 } = await sb.rpc('asignar_licencia', {
-      p_licencia_id: licId,
+    // Creación: usar RPC para permitir licencia específica o automática
+    const { data, error } = await sb.rpc('vender_con_licencia', {
       p_cliente_id: payload.cliente_id,
-      p_venta_id: ventaId,
-      p_producto_id: payload.producto_id
+      p_producto_id: payload.producto_id,
+      p_precio: payload.precio_venta,
+      p_moneda: payload.moneda,
+      p_tipo_licencia: payload.tipo_licencia,
+      p_sistema_operativo: payload.sistema_operativo,
+      p_version: payload.version,
+      p_descripcion: payload.descripcion,
+      p_datos_licencia: payload.datos_licencia,
+      p_fecha_caducidad: payload.fecha_caducidad,
+      p_correo_suscripcion: payload.correo_suscripcion,
+      p_anotaciones: payload.anotaciones,
+      p_licencia_id: licId
     });
-    if (e2) toast('Venta guardada, pero licencia no asignada: ' + e2.message, 'error');
+    if (error) return toast('No se pudo registrar la venta: ' + error.message, 'error');
   }
 
-  toast(id ? 'Venta actualizada' : 'Venta registrada');
+  toast('Venta registrada');
   closeModal('modalVenta');
   await loadVentas();
   await loadLicencias();
+  await loadProductos();
   renderDashboard();
 }
 
@@ -1072,15 +1090,17 @@ async function confirmarDevolucion() {
   closeModal('modalDevolucion');
   await loadVentas();
   await loadLicencias();
+  await loadProductos();
   renderDashboard();
 }
 async function eliminarVenta(ventaId) {
-  if (!confirm('¿Eliminar esta venta de forma definitiva?\nSi tenía licencia vinculada, volverá a estar Disponible.')) return;
-  const { error } = await sb.rpc('eliminar_venta', { p_venta_id: ventaId });
+  if (!confirm('¿Eliminar esta venta de forma definitiva?\nLa licencia vinculada volverá a estar Disponible.')) return;
+  const { error } = await sb.from('ventas').delete().eq('id', ventaId);
   if (error) return toast('Error: ' + error.message, 'error');
   toast('Venta eliminada');
   await loadVentas();
   await loadLicencias();
+  await loadProductos();
   renderDashboard();
 }
 
@@ -1202,19 +1222,18 @@ async function agregarLicencia() {
   document.getElementById('licCont').textContent = '0 / 25';
   toggleLicForm(true);
   await loadLicencias();
+  await loadProductos();
   renderDashboard();
 }
 
 function asignarLicencia(licId) {
   openVentaModal();
-  document.getElementById('ventaVincularLic').checked = true;
-  toggleLicenciaBox();
   const lic = state.licencias.find(l => l.id === licId);
   if (lic) {
     document.getElementById('ventaProducto').value = lic.producto_id;
     onProductoChange();
     setTimeout(() => {
-      llenarSelectLicenciasVenta();
+      actualizarStockVenta();
       document.getElementById('ventaLicencia').value = licId;
     }, 50);
   }
@@ -1226,6 +1245,7 @@ async function liberarLicencia(licId) {
   if (error) return toast(error.message, 'error');
   toast('Licencia liberada');
   await loadLicencias();
+  await loadProductos();
   renderDashboard();
 }
 
@@ -1235,6 +1255,7 @@ async function eliminarLicencia(licId) {
   if (error) return toast(error.message, 'error');
   toast('Licencia eliminada');
   await loadLicencias();
+  await loadProductos();
   renderDashboard();
 }
 
@@ -1277,6 +1298,7 @@ async function saveLicenciaEdit() {
   toast('Licencia actualizada');
   closeModal('modalLicenciaEdit');
   await loadLicencias();
+  await loadProductos();
 }
 
 // ============================================================
@@ -1295,10 +1317,15 @@ function verBoleta(ventaId) {
   if (v.sistema_operativo) lineas.push(`<div class="boleta-row"><span class="k">Sistema:</span><span class="v">${esc(v.sistema_operativo)}</span></div>`);
   if (v.version) lineas.push(`<div class="boleta-row"><span class="k">Versión:</span><span class="v">${esc(v.version)}</span></div>`);
   if (v.datos_licencia) lineas.push(`<div class="boleta-row"><span class="k">Licencia:</span><span class="v">${esc(v.datos_licencia)}</span></div>`);
+  if (v.licencias) {
+    if (v.licencias.clave) lineas.push(`<div class="boleta-row"><span class="k">Clave:</span><span class="v">${esc(v.licencias.clave)}</span></div>`);
+    if (v.licencias.correo) lineas.push(`<div class="boleta-row"><span class="k">Correo:</span><span class="v">${esc(v.licencias.correo)}</span></div>`);
+    if (v.licencias.link_descarga) lineas.push(`<div class="boleta-row"><span class="k">Link:</span><span class="v">${esc(v.licencias.link_descarga)}</span></div>`);
+  }
   if (v.fecha_caducidad) lineas.push(`<div class="boleta-row"><span class="k">Caduca:</span><span class="v">${fmtDate(v.fecha_caducidad)}</span></div>`);
-  if (v.correo_suscripcion) lineas.push(`<div class="boleta-row"><span class="k">Correo:</span><span class="v">${esc(v.correo_suscripcion)}</span></div>`);
+  if (v.correo_suscripcion) lineas.push(`<div class="boleta-row"><span class="k">Correo suscripción:</span><span class="v">${esc(v.correo_suscripcion)}</span></div>`);
   if (v.descripcion) lineas.push(`<div class="boleta-row"><span class="k">Descripción:</span><span class="v">${esc(v.descripcion)}</span></div>`);
-  if (v.anotaciones) lineas.push(`<div class="boleta-row"><span class="k">Notas:</span><span class="v">${esc(v.anotaciones)}</span></div>`);
+  if (v.anotaciones) lineas.push(`<div class="boleta-row"><span class="k">Anotaciones:</span><span class="v">${esc(v.anotaciones)}</span></div>`);
 
   document.getElementById('boletaRender').innerHTML = `
     <div class="boleta-head">
