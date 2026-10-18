@@ -437,7 +437,6 @@ function renderVentas() {
     const caducaBadge = v.fecha_caducidad ? `<span class="badge ${d < 0 ? 'red' : d <= 30 ? 'orange' : 'gray'}">${fmtDate(v.fecha_caducidad)}</span>` : '—';
     const lic = v.licencias;
     const licBadge = lic ? `<span class="badge ${lic.tipo === 'prueba' ? 'blue' : lic.tipo === 'pago' ? 'purple' : 'gray'}" title="${esc(lic.clave || lic.correo || lic.link_descarga || '')}">${lic.tipo === 'prueba' ? 'Prueba' : lic.tipo === 'pago' ? 'Pago' : 'Gratuita'}</span>` : '—';
-    const tipoText = v.incluye_servicio ? 'Licencia e Instalación' : v.tipo_licencia;
     return `<tr>
       <td>${fmtDate(v.fecha_venta)}</td>
       <td>${esc(v.clientes?.nombre || '—')}<div style="font-size:11px;color:var(--muted)">DNI ${esc(v.clientes?.dni||'—')}</div></td>
@@ -536,7 +535,6 @@ function onServicioChange() {
 }
 
 function actualizarHintPrecio() {
-  const tipo = document.getElementById('ventaTipo').value;
   const incluye = document.getElementById('ventaIncluyeServicio').checked;
   const precio = document.getElementById('ventaPrecio');
   const hint = document.getElementById('ventaPrecioHint');
@@ -547,7 +545,6 @@ function actualizarHintPrecio() {
   } else {
     hint.textContent = 'El precio se carga automáticamente del producto. Marca "Incluye servicio" para modificarlo.';
     hint.className = 'hint warn';
-    // Restaurar precio base si estamos creando o editando sin servicio
     const pid = document.getElementById('ventaProductoId').value;
     const p = state.productos.find(x => x.id === pid);
     if (p) precio.value = p.precio_base;
@@ -561,7 +558,7 @@ async function saveVenta() {
   const tipo = document.getElementById('ventaTipo').value;
   const incluye_servicio = document.getElementById('ventaIncluyeServicio').checked;
   const caducidad = document.getElementById('ventaCaducidad').value || null;
-  const nuevaLicId = document.getElementById('ventaNuevaLicencia') ? document.getElementById('ventaNuevaLicencia').value : null;
+  let licenciaPreseleccionada = document.getElementById('modalVenta').dataset.licenciaPreseleccionada || null;
 
   if (!cliente_id) return toast('Selecciona un cliente', 'error');
   if (!producto_id) return toast('Selecciona un producto', 'error');
@@ -582,17 +579,19 @@ async function saveVenta() {
 
   let error;
   if (id) {
+    const nuevaLicId = document.getElementById('ventaNuevaLicencia') ? document.getElementById('ventaNuevaLicencia').value : null;
     const { error: e } = await sb.rpc('actualizar_venta', { p_venta_id: id, p_licencia_id: nuevaLicId || null, ...payload });
     error = e;
     if (!error) toast('Venta actualizada');
   } else {
-    const { error: e } = await sb.rpc('crear_venta', { p_licencia_id: null, ...payload });
+    const { error: e } = await sb.rpc('crear_venta', { p_licencia_id: licenciaPreseleccionada, ...payload });
     error = e;
     if (!error) toast('Venta registrada');
   }
   
   if (error) return toast('Error: ' + error.message, 'error');
   
+  delete document.getElementById('modalVenta').dataset.licenciaPreseleccionada;
   closeModal('modalVenta');
   await loadVentas();
   await loadLicencias();
@@ -626,9 +625,9 @@ function renderLicencias() {
 function asignarLicencia(licId) {
   const l = state.licencias.find(x => x.id === licId);
   if (!l) return toast('Licencia no encontrada', 'error');
-  openVentaModal(); // Abre el modal unificado vacío
   
-  // Autocompletar datos
+  openVentaModal(); 
+  
   document.getElementById('ventaProductoId').value = l.producto_id;
   const p = state.productos.find(x => x.id === l.producto_id);
   document.getElementById('buscarProducto').value = p?.nombre || '';
@@ -639,13 +638,13 @@ function asignarLicencia(licId) {
   document.getElementById('ventaPrecio').value = p?.precio_base || 0;
   onTipoLicenciaChange();
   
-  // Inyectar la licencia seleccionada visualmente
   document.getElementById('divLicenciaAsignada').style.display = 'block';
   document.getElementById('infoLicenciaAsignada').textContent = l.clave || l.correo || 'Licencia lista para asignar';
-  document.getElementById('divCambiarLicencia').style.display = 'none'; // Ocultar selector, ya tiene una
+  document.getElementById('divCambiarLicencia').style.display = 'none'; 
   
-  // Guardar el ID de la licencia seleccionada temporalmente en un atributo para el guardado
   document.getElementById('modalVenta').dataset.licenciaPreseleccionada = licId;
+  
+  openModal('modalVenta');
 }
 
 function toggleLicForm(forceHide=false) { const wrap = document.getElementById('licFormWrap'); const btn = document.getElementById('btnToggleLicForm'); if (forceHide) { wrap.style.display = 'none'; btn.textContent = '➕ Agregar licencia'; return; } const visible = wrap.style.display !== 'none'; wrap.style.display = visible ? 'none' : 'block'; btn.textContent = visible ? '➕ Agregar licencia' : '✖ Cerrar formulario'; if (!visible) { fillSelectsCategorias(); document.getElementById('nuevaLicCategoria').value = ''; } }
@@ -671,7 +670,6 @@ function verBoleta(ventaId) {
   const correlativo = nextCorrelativo(); boletaActual = { venta: v, correlativo };
   const lineas = [];
   
-  // DNI y Celular adelante
   if (v.clientes?.dni) lineas.push(`<div class="boleta-row"><span class="k">DNI:</span><span class="v">${esc(v.clientes.dni)}</span></div>`);
   if (v.clientes?.celular) lineas.push(`<div class="boleta-row"><span class="k">Celular:</span><span class="v">${esc(v.clientes.celular)}</span></div>`);
   lineas.push(`<div class="boleta-row"><span class="k">Cliente:</span><span class="v">${esc(v.clientes?.nombre || '—')}</span></div>`);
@@ -679,13 +677,11 @@ function verBoleta(ventaId) {
   lineas.push(`<div class="boleta-row"><span class="k">Producto:</span><span class="v">${esc(v.productos?.nombre || '—')}</span></div>`);
   lineas.push(`<div class="boleta-row"><span class="k">Versión:</span><span class="v">${esc(v.version || v.productos?.version || '—')}</span></div>`);
   
-  // Tipo de licencia o Licencia e Instalación
   const tipoLabel = v.incluye_servicio ? 'Licencia e Instalación' : v.tipo_licencia;
   lineas.push(`<div class="boleta-row"><span class="k">Tipo:</span><span class="v">${esc(tipoLabel)}${v.es_prueba ? ' (PRUEBA)' : ''}</span></div>`);
   
   if (v.sistema_operativo) lineas.push(`<div class="boleta-row"><span class="k">Sistema:</span><span class="v">${esc(v.sistema_operativo)}</span></div>`);
   
-  // Evitar redundancia: Solo mostrar 'Licencia' (de la tabla licencias), no 'Clave' ni 'datos_licencia'
   if (v.licencias) {
     if (v.licencias.clave) lineas.push(`<div class="boleta-row"><span class="k">Licencia:</span><span class="v">${esc(v.licencias.clave)}</span></div>`);
     if (v.licencias.correo) lineas.push(`<div class="boleta-row"><span class="k">Correo Lic.:</span><span class="v">${esc(v.licencias.correo)}</span></div>`);
