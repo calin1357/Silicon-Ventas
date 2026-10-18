@@ -126,6 +126,18 @@
   .stock-box.warn { background: #fffbeb; border-color: #fde68a; color: #92400e; }
   .stock-box.danger { background: #fef2f2; border-color: #fecaca; color: #991b1b; }
 
+  /* AUTOCOMPLETE */
+  .ac-wrap { position: relative; }
+  .ac-list { position: absolute; left: 0; right: 0; top: 100%; background: #fff; border: 1px solid var(--line);
+    border-radius: 8px; box-shadow: 0 10px 30px rgba(0,0,0,.15); max-height: 240px; overflow-y: auto; z-index: 50; display: none; }
+  .ac-list.show { display: block; }
+  .ac-item { padding: 8px 12px; cursor: pointer; font-size: 13px; border-bottom: 1px solid #f1f5f9; }
+  .ac-item:last-child { border-bottom: 0; }
+  .ac-item:hover, .ac-item.active { background: #eff6ff; }
+  .ac-item .sub { color: var(--muted); font-size: 11px; }
+  .ac-item .ver { color: var(--muted); font-weight: 600; font-size: 11px; margin-left: 6px; }
+  .ac-empty { padding: 10px 12px; color: var(--muted); font-size: 12px; }
+
   /* BOLETA */
   #boletaRender { background: #fff; padding: 28px; font-family: 'Courier New', monospace; color: #111; }
   .boleta-head { text-align: center; border-bottom: 2px dashed #999; padding-bottom: 12px; margin-bottom: 12px; }
@@ -205,7 +217,7 @@
           <button class="btn" onclick="openClienteModal()">+ Nuevo cliente</button>
         </div>
         <div class="table-wrap"><table>
-          <thead><tr><th>Nombre</th><th>Correo</th><th>Registro</th><th>Acciones</th></tr></thead>
+          <thead><tr><th>Nombre</th><th>DNI</th><th>Celular</th><th>Correo</th><th>Registro</th><th>Acciones</th></tr></thead>
           <tbody id="clientesTbody"></tbody>
         </table></div>
       </div>
@@ -233,7 +245,7 @@
           <button class="btn" onclick="openProductoModal()">+ Nuevo producto</button>
         </div>
         <div class="table-wrap"><table>
-          <thead><tr><th>Nombre</th><th>Versión</th><th>Categoría</th><th>Precio</th><th>Moneda</th><th>Tipo</th><th>Stock</th><th>Estado</th><th>Acciones</th></tr></thead>
+          <thead><tr><th>Nombre</th><th>Versión</th><th>Categoría</th><th>Precio</th><th>Tipo</th><th>Stock</th><th>Estado</th><th>Acciones</th></tr></thead>
           <tbody id="productosTbody"></tbody>
         </table></div>
       </div>
@@ -339,6 +351,8 @@
 </div>
 
 <!-- ==================== MODALES ==================== -->
+
+<!-- Cliente -->
 <div class="modal-bg" id="modalCliente">
   <div class="modal">
     <div class="modal-head"><h3 id="modalClienteTitle">Nuevo cliente</h3><button onclick="closeModal('modalCliente')">×</button></div>
@@ -346,6 +360,16 @@
       <input type="hidden" id="clienteId" />
       <div class="form-grid">
         <div class="full"><label>Nombre <span class="req">*</span></label><input id="clienteNombre" /></div>
+        <div><label>DNI <span class="req">*</span></label>
+          <input id="clienteDni" maxlength="8" inputmode="numeric" placeholder="8 dígitos"
+                 oninput="this.value = this.value.replace(/\D/g,'').slice(0,8)" />
+          <div class="hint">8 dígitos numéricos, único.</div>
+        </div>
+        <div><label>Celular <span class="req">*</span></label>
+          <input id="clienteCelular" maxlength="9" inputmode="numeric" placeholder="9 dígitos"
+                 oninput="this.value = this.value.replace(/\D/g,'').slice(0,9)" />
+          <div class="hint">9 dígitos numéricos, único.</div>
+        </div>
         <div class="full"><label>Correo</label><input id="clienteCorreo" type="email" /></div>
       </div>
     </div>
@@ -356,6 +380,7 @@
   </div>
 </div>
 
+<!-- Categoría -->
 <div class="modal-bg" id="modalCategoria">
   <div class="modal">
     <div class="modal-head"><h3 id="modalCategoriaTitle">Nueva categoría</h3><button onclick="closeModal('modalCategoria')">×</button></div>
@@ -376,6 +401,7 @@
   </div>
 </div>
 
+<!-- Producto -->
 <div class="modal-bg" id="modalProducto">
   <div class="modal">
     <div class="modal-head"><h3 id="modalProductoTitle">Nuevo producto</h3><button onclick="closeModal('modalProducto')">×</button></div>
@@ -385,10 +411,7 @@
         <div><label>Nombre <span class="req">*</span></label><input id="productoNombre" /></div>
         <div><label>Versión <span class="req">*</span></label><input id="productoVersion" placeholder="Ej. 10, 11, 2024" /></div>
         <div><label>Categoría <span class="req">*</span></label><select id="productoCategoriaId"></select></div>
-        <div><label>Precio base</label><input id="productoPrecio" type="number" step="0.01" value="0" /></div>
-        <div><label>Moneda</label>
-          <select id="productoMoneda"><option value="PEN">S/ Soles (PEN)</option><option value="USD">$ Dólares (USD)</option><option value="EUR">€ Euros (EUR)</option></select>
-        </div>
+        <div><label>Precio base (S/)</label><input id="productoPrecio" type="number" step="0.01" value="0" /></div>
         <div><label>Tipo de licencia</label>
           <select id="productoTipo"><option>Perpetua</option><option>Suscripción</option></select>
         </div>
@@ -404,51 +427,89 @@
   </div>
 </div>
 
+<!-- Venta -->
 <div class="modal-bg" id="modalVenta">
   <div class="modal">
     <div class="modal-head"><h3 id="modalVentaTitle">Nueva venta</h3><button onclick="closeModal('modalVenta')">×</button></div>
     <div class="modal-body">
       <input type="hidden" id="ventaId" />
+      <input type="hidden" id="ventaClienteId" />
+
       <div class="form-grid">
-        <div><label>Cliente <span class="req">*</span></label><select id="ventaCliente"></select></div>
-        <div class="full">
-          <label>Producto <span class="req">*</span></label>
-          <input id="buscarProducto" placeholder="🔍 Buscar producto por nombre..." oninput="filtrarProductosVenta()" style="margin-bottom:6px" />
-          <select id="ventaProducto" onchange="onProductoChange()"></select>
-          <div class="hint">Escribe para filtrar. Se muestran todas las versiones disponibles.</div>
+        <!-- Cliente con buscador -->
+        <div class="full ac-wrap">
+          <label>Cliente <span class="req">*</span></label>
+          <input id="buscarCliente" placeholder="🔍 Buscar por nombre, DNI o celular..." autocomplete="off" oninput="onBuscarCliente()" onfocus="onBuscarCliente()" />
+          <div id="acClientes" class="ac-list"></div>
+          <div class="hint" id="clienteSeleccionadoHint">Sin cliente seleccionado.</div>
         </div>
+
+        <!-- Producto con buscador -->
+        <div class="full ac-wrap">
+          <label>Producto <span class="req">*</span></label>
+          <input id="buscarProducto" placeholder="🔍 Buscar producto por nombre..." autocomplete="off" oninput="onBuscarProducto()" onfocus="onBuscarProducto()" />
+          <div id="acProductos" class="ac-list"></div>
+          <input type="hidden" id="ventaProductoId" />
+          <div class="hint" id="productoSeleccionadoHint">Sin producto seleccionado.</div>
+        </div>
+
         <div class="full">
           <div id="ventaStockBox" class="stock-box">Selecciona un producto para ver el stock.</div>
         </div>
-        <div class="full">
-          <label>Licencia a descontar</label>
-          <select id="ventaLicencia">
-            <option value="">Automática (la más antigua disponible)</option>
-          </select>
-          <div class="hint">Si dejas "Automática", la BD toma la licencia disponible más antigua. Puedes elegir una específica si lo prefieres.</div>
-        </div>
-        <div><label>Precio de venta <span class="req">*</span></label><input id="ventaPrecio" type="number" step="0.01" value="0" /></div>
-        <div><label>Moneda</label>
-          <select id="ventaMoneda"><option value="PEN">PEN</option><option value="USD">USD</option><option value="EUR">EUR</option></select>
-        </div>
+
+        <div><label>Precio de venta (S/) <span class="req">*</span></label><input id="ventaPrecio" type="number" step="0.01" value="0" /></div>
         <div><label>Tipo de licencia</label>
-          <select id="ventaTipo" onchange="onTipoLicenciaChange()"><option>Perpetua</option><option>Suscripción</option></select>
+          <select id="ventaTipo" onchange="onTipoLicenciaChange()" disabled><option>Perpetua</option><option>Suscripción</option></select>
         </div>
         <div><label>Sistema operativo</label><input id="ventaSO" placeholder="Windows 11, macOS, etc." /></div>
         <div class="full"><label>Descripción</label><input id="ventaDescripcion" /></div>
         <div class="full"><label>Datos de licencia (clave/serial)</label><input id="ventaDatosLicencia" style="font-family:monospace" /></div>
-        <div><label>Fecha de caducidad <span id="reqCaducidad" class="req" style="display:none">*</span></label><input id="ventaCaducidad" type="date" /></div>
-        <div><label>Correo de suscripción</label><input id="ventaCorreoSuscripcion" type="email" /></div>
+        <div><label>Fecha de caducidad <span id="reqCaducidad" class="req" style="display:none">*</span></label><input id="ventaCaducidad" type="date" disabled /></div>
+        <div><label>Correo de suscripción (opcional)</label><input id="ventaCorreoSuscripcion" type="email" /></div>
         <div class="full"><label>Anotaciones</label><textarea id="ventaAnotaciones"></textarea></div>
       </div>
     </div>
     <div class="modal-foot">
       <button class="btn secondary" onclick="closeModal('modalVenta')">Cancelar</button>
-      <button class="btn" id="btnGuardarVenta" onclick="saveVenta()">Guardar</button>
+      <button class="btn" id="btnGuardarVenta" onclick="saveVenta()" disabled>Guardar</button>
     </div>
   </div>
 </div>
 
+<!-- Asignar licencia (flujo desde Licencias) -->
+<div class="modal-bg" id="modalAsignar">
+  <div class="modal">
+    <div class="modal-head"><h3>Asignar licencia a cliente</h3><button onclick="closeModal('modalAsignar')">×</button></div>
+    <div class="modal-body">
+      <input type="hidden" id="asignarLicId" />
+
+      <div class="card" style="margin-bottom:14px;padding:14px;background:#f8fafc">
+        <div id="asignarLicInfo" style="font-size:13px;line-height:1.6"></div>
+      </div>
+
+      <div class="form-grid">
+        <div class="full ac-wrap">
+          <label>Cliente <span class="req">*</span></label>
+          <input id="asignarBuscarCliente" placeholder="🔍 Buscar por nombre, DNI o celular..." autocomplete="off" oninput="onAsignarBuscarCliente()" onfocus="onAsignarBuscarCliente()" />
+          <div id="acClientesAsignar" class="ac-list"></div>
+          <input type="hidden" id="asignarClienteId" />
+          <div class="hint" id="asignarClienteHint">Sin cliente seleccionado.</div>
+        </div>
+
+        <div><label>Precio (S/) <span class="req">*</span></label><input id="asignarPrecio" type="number" step="0.01" value="0" /></div>
+        <div><label>Tipo de licencia</label><input id="asignarTipo" readonly /></div>
+        <div><label>Fecha de caducidad <span id="asignarReqCad" class="req" style="display:none">*</span></label><input id="asignarCaducidad" type="date" /></div>
+        <div class="full"><label>Anotaciones</label><textarea id="asignarAnotaciones" placeholder="Opcional"></textarea></div>
+      </div>
+    </div>
+    <div class="modal-foot">
+      <button class="btn secondary" onclick="closeModal('modalAsignar')">Cancelar</button>
+      <button class="btn" id="btnGuardarAsignar" onclick="confirmarAsignarLicencia()">Guardar venta</button>
+    </div>
+  </div>
+</div>
+
+<!-- Devolución -->
 <div class="modal-bg" id="modalDevolucion">
   <div class="modal">
     <div class="modal-head"><h3>Devolver venta</h3><button onclick="closeModal('modalDevolucion')">×</button></div>
@@ -456,7 +517,7 @@
       <p id="devolucionInfo" style="font-size:13px;color:var(--muted);margin-top:0"></p>
       <div class="form-grid">
         <div class="full"><label>Motivo de la devolución <span class="req">*</span></label><textarea id="devolucionMotivo" placeholder="Ej. El cliente no pudo activar la licencia..."></textarea></div>
-        <div><label>Monto reembolsado</label><input id="devolucionMonto" type="number" step="0.01" value="0" /></div>
+        <div><label>Monto reembolsado (S/)</label><input id="devolucionMonto" type="number" step="0.01" value="0" /></div>
         <div class="full" style="display:flex;align-items:center;gap:8px">
           <input type="checkbox" id="devolucionReutilizar" style="width:auto" />
           <label style="margin:0">Reutilizar licencia (volver a Disponible)</label>
@@ -470,6 +531,7 @@
   </div>
 </div>
 
+<!-- Editar licencia -->
 <div class="modal-bg" id="modalLicenciaEdit">
   <div class="modal">
     <div class="modal-head"><h3>Editar licencia</h3><button onclick="closeModal('modalLicenciaEdit')">×</button></div>
@@ -499,6 +561,7 @@
   </div>
 </div>
 
+<!-- Boleta -->
 <div class="modal-bg" id="modalBoleta">
   <div class="modal" style="max-width:520px">
     <div class="modal-head"><h3>🧾 Boleta de venta</h3><button onclick="closeModal('modalBoleta')">×</button></div>
@@ -538,16 +601,14 @@ let state = { clientes: [], categorias: [], productos: [], ventas: [], licencias
 let devolucionVentaId = null;
 let boletaActual = null;
 let tabLicActual = 'todas';
+let asignarLicenciaActual = null;
 
 // ============================================================
 // UTILIDADES
 // ============================================================
 function esc(s) { return String(s ?? '').replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m])); }
 function fmtDate(d) { if (!d) return '—'; return new Date(d).toLocaleDateString('es-PE', { year:'numeric', month:'short', day:'numeric' }); }
-function fmtMoney(n, moneda='PEN') {
-  const sym = moneda === 'USD' ? '$' : moneda === 'EUR' ? '€' : 'S/';
-  return `${sym} ${Number(n || 0).toFixed(2)}`;
-}
+function fmtMoney(n) { return 'S/ ' + Number(n || 0).toFixed(2); }
 function toast(msg, type='ok') {
   const el = document.createElement('div');
   el.className = 'toast-item ' + type;
@@ -586,8 +647,28 @@ function categoriaNombreDe(productoId) {
 function stockProducto(productoId) {
   return state.licencias.filter(l => l.estado === 'Disponible' && l.producto_id === productoId).length;
 }
-function labelProducto(p) {
-  return `${p.nombre} v${p.version}`;
+
+// ============================================================
+// AUTOCOMPLETE (reutilizable)
+// ============================================================
+function renderAcList(container, items, renderItem, onPick) {
+  const el = document.getElementById(container);
+  if (!items.length) {
+    el.innerHTML = '<div class="ac-empty">Sin resultados</div>';
+    el.classList.add('show');
+    return;
+  }
+  el.innerHTML = items.map((it, i) => `<div class="ac-item" data-i="${i}">${renderItem(it)}</div>`).join('');
+  el.classList.add('show');
+  el.querySelectorAll('.ac-item').forEach(div => {
+    div.onclick = () => {
+      onPick(items[parseInt(div.dataset.i, 10)]);
+      el.classList.remove('show');
+    };
+  });
+}
+function hideAc(container) {
+  document.getElementById(container).classList.remove('show');
 }
 
 // ============================================================
@@ -627,11 +708,10 @@ async function loadAll() {
   renderDashboard();
   renderFiltroClientes();
   fillSelectsCategorias();
-  fillSelectsProductos();
 }
 
 function renderFiltroClientes() {
-  setOptions(document.getElementById('filtroCliente'), state.clientes, 'id', c => c.nombre, 'Todos los clientes');
+  setOptions(document.getElementById('filtroCliente'), state.clientes, 'id', c => `${c.nombre} (${c.dni || '—'})`, 'Todos los clientes');
 }
 
 function switchView(name) {
@@ -651,7 +731,7 @@ function renderDashboard() {
     const d = new Date(v.fecha_venta); const now = new Date();
     return d.getMonth() === now.getMonth() && d.getFullYear() === now.getFullYear();
   });
-  const ingresosPEN = ventasMes.filter(v => (v.moneda||'PEN') === 'PEN').reduce((s, v) => s + Number(v.precio_venta || 0), 0);
+  const ingresos = ventasMes.reduce((s, v) => s + Number(v.precio_venta || 0), 0);
   const licDisp = state.licencias.filter(l => l.estado === 'Disponible').length;
   const porVencer = state.ventas.filter(v => {
     if ((v.estado || 'Activa') !== 'Activa') return false;
@@ -662,7 +742,7 @@ function renderDashboard() {
   document.getElementById('metrics').innerHTML = `
     <div class="metric"><div class="label">Clientes</div><div class="value">${totalClientes}</div></div>
     <div class="metric"><div class="label">Ventas del mes</div><div class="value">${ventasMes.length}</div></div>
-    <div class="metric"><div class="label">Ingresos del mes (PEN)</div><div class="value ok">${fmtMoney(ingresosPEN, 'PEN')}</div></div>
+    <div class="metric"><div class="label">Ingresos del mes</div><div class="value ok">${fmtMoney(ingresos)}</div></div>
     <div class="metric"><div class="label">Licencias disponibles</div><div class="value">${licDisp}</div></div>
     <div class="metric"><div class="label">Próximas a vencer</div><div class="value warn">${porVencer.length}</div></div>
   `;
@@ -671,7 +751,7 @@ function renderDashboard() {
     const d = daysUntil(v.fecha_caducidad);
     return `<tr>
       <td>${esc(v.clientes?.nombre || '—')}</td>
-      <td>${esc(v.productos?.nombre || '—')} ${v.version ? 'v' + esc(v.version) : ''}</td>
+      <td>${esc(v.productos?.nombre || '—')} <span class="ver" style="color:var(--muted);font-weight:600">Versión ${esc(v.version || v.productos?.version || '—')}</span></td>
       <td>${fmtDate(v.fecha_caducidad)}</td>
       <td><span class="badge ${d <= 7 ? 'red' : 'orange'}">${d} días</span></td>
     </tr>`;
@@ -688,6 +768,8 @@ async function loadClientes() {
   document.getElementById('clientesTbody').innerHTML = data.map(c => `
     <tr>
       <td>${esc(c.nombre)}</td>
+      <td style="font-family:monospace">${esc(c.dni || '—')}</td>
+      <td style="font-family:monospace">${esc(c.celular || '—')}</td>
       <td>${esc(c.correo || '—')}</td>
       <td>${fmtDate(c.fecha_registro)}</td>
       <td class="actions">
@@ -695,7 +777,7 @@ async function loadClientes() {
         <button class="btn small ghost" onclick="venderACliente('${c.id}')">Vender</button>
         <button class="btn small danger" onclick="deleteCliente('${c.id}')">Eliminar</button>
       </td>
-    </tr>`).join('') || '<tr><td colspan="4" class="empty">Sin clientes</td></tr>';
+    </tr>`).join('') || '<tr><td colspan="6" class="empty">Sin clientes</td></tr>';
 }
 function openClienteModal(id=null) {
   document.getElementById('modalClienteTitle').textContent = id ? 'Editar cliente' : 'Nuevo cliente';
@@ -703,24 +785,41 @@ function openClienteModal(id=null) {
   if (id) {
     const c = state.clientes.find(x => x.id === id);
     document.getElementById('clienteNombre').value = c?.nombre || '';
+    document.getElementById('clienteDni').value = c?.dni || '';
+    document.getElementById('clienteCelular').value = c?.celular || '';
     document.getElementById('clienteCorreo').value = c?.correo || '';
   } else {
     document.getElementById('clienteNombre').value = '';
+    document.getElementById('clienteDni').value = '';
+    document.getElementById('clienteCelular').value = '';
     document.getElementById('clienteCorreo').value = '';
   }
   openModal('modalCliente');
 }
 async function saveCliente() {
   const id = document.getElementById('clienteId').value;
+  const dni = document.getElementById('clienteDni').value.trim();
+  const celular = document.getElementById('clienteCelular').value.trim();
+  if (dni.length !== 8) return toast('El DNI debe tener exactamente 8 dígitos', 'error');
+  if (celular.length !== 9) return toast('El celular debe tener exactamente 9 dígitos', 'error');
   const payload = {
     nombre: document.getElementById('clienteNombre').value.trim(),
+    dni,
+    celular,
     correo: document.getElementById('clienteCorreo').value.trim() || null,
   };
   if (!payload.nombre) return toast('El nombre es obligatorio', 'error');
   let error;
   if (id) ({ error } = await sb.from('clientes').update(payload).eq('id', id));
   else ({ error } = await sb.from('clientes').insert(payload));
-  if (error) return toast(error.message, 'error');
+  if (error) {
+    if (error.code === '23505') {
+      if (/dni/i.test(error.message)) return toast('El DNI ya está registrado', 'error');
+      if (/celular/i.test(error.message)) return toast('El celular ya está registrado', 'error');
+      return toast('Valor duplicado: ' + error.message, 'error');
+    }
+    return toast(error.message, 'error');
+  }
   toast(id ? 'Cliente actualizado' : 'Cliente creado');
   closeModal('modalCliente');
   await loadClientes();
@@ -738,7 +837,12 @@ async function deleteCliente(id) {
 }
 function venderACliente(clienteId) {
   openVentaModal();
-  document.getElementById('ventaCliente').value = clienteId;
+  const c = state.clientes.find(x => x.id === clienteId);
+  if (c) {
+    document.getElementById('ventaClienteId').value = c.id;
+    document.getElementById('buscarCliente').value = `${c.nombre} — ${c.dni}`;
+    document.getElementById('clienteSeleccionadoHint').innerHTML = `✅ ${esc(c.nombre)} — DNI ${esc(c.dni)} — Cel ${esc(c.celular)}`;
+  }
 }
 
 // ============================================================
@@ -819,10 +923,9 @@ async function loadProductos() {
       : `<span class="badge red">0</span>`;
     return `<tr>
       <td>${esc(p.nombre)}</td>
-      <td>${esc(p.version)}</td>
+      <td><span class="ver" style="color:var(--muted);font-weight:600">Versión ${esc(p.version)}</span></td>
       <td>${esc(p.categorias?.nombre || '—')}</td>
-      <td>${fmtMoney(p.precio_base, p.moneda || 'PEN')}</td>
-      <td>${esc(p.moneda || 'PEN')}</td>
+      <td>${fmtMoney(p.precio_base)}</td>
       <td>${esc(p.tipo_licencia)}</td>
       <td>${stockBadge}</td>
       <td><span class="badge ${p.activo?'green':'gray'}">${p.activo?'Activo':'Inactivo'}</span></td>
@@ -830,24 +933,15 @@ async function loadProductos() {
         <button class="btn small secondary" onclick="openProductoModal('${p.id}')">Editar</button>
       </td>
     </tr>`;
-  }).join('') || '<tr><td colspan="9" class="empty">Sin productos</td></tr>';
+  }).join('') || '<tr><td colspan="8" class="empty">Sin productos</td></tr>';
 }
 function fillSelectsCategorias() {
   const cats = state.categorias.filter(c => c.activo);
   setOptions(document.getElementById('productoCategoriaId'), cats, 'id', c => c.nombre, '— Selecciona categoría —');
-  setOptions(document.getElementById('editLicProducto'), state.productos.filter(p => p.activo), 'id', labelProducto, '— Selecciona producto —');
-  setOptions(document.getElementById('nuevaLicProducto'), state.productos.filter(p => p.activo), 'id', labelProducto, '— Selecciona producto —');
-}
-function fillSelectsProductos() {
-  setOptions(document.getElementById('ventaProducto'), state.productos.filter(p => p.activo), 'id', labelProducto, '— Selecciona producto —');
-}
-function filtrarProductosVenta() {
-  const q = document.getElementById('buscarProducto').value.trim().toLowerCase();
-  const filtrados = state.productos
-    .filter(p => p.activo)
-    .filter(p => !q || p.nombre.toLowerCase().includes(q) || String(p.version).toLowerCase().includes(q));
-  setOptions(document.getElementById('ventaProducto'), filtrados, 'id', labelProducto, '— Selecciona producto —');
-  actualizarStockVenta();
+  setOptions(document.getElementById('editLicProducto'), state.productos.filter(p => p.activo), 'id',
+    p => `${p.nombre} — Versión ${p.version}`, '— Selecciona producto —');
+  setOptions(document.getElementById('nuevaLicProducto'), state.productos.filter(p => p.activo), 'id',
+    p => `${p.nombre} — Versión ${p.version}`, '— Selecciona producto —');
 }
 function openProductoModal(id=null) {
   document.getElementById('modalProductoTitle').textContent = id ? 'Editar producto' : 'Nuevo producto';
@@ -859,7 +953,6 @@ function openProductoModal(id=null) {
     document.getElementById('productoVersion').value = p?.version || '1.0';
     document.getElementById('productoCategoriaId').value = p?.categoria_id || '';
     document.getElementById('productoPrecio').value = p?.precio_base ?? 0;
-    document.getElementById('productoMoneda').value = p?.moneda || 'PEN';
     document.getElementById('productoTipo').value = p?.tipo_licencia || 'Perpetua';
     document.getElementById('productoActivo').value = String(!!p?.activo);
   } else {
@@ -867,7 +960,6 @@ function openProductoModal(id=null) {
     document.getElementById('productoVersion').value = '1.0';
     document.getElementById('productoCategoriaId').value = '';
     document.getElementById('productoPrecio').value = 0;
-    document.getElementById('productoMoneda').value = 'PEN';
     document.getElementById('productoTipo').value = 'Perpetua';
     document.getElementById('productoActivo').value = 'true';
   }
@@ -880,7 +972,7 @@ async function saveProducto() {
     version: document.getElementById('productoVersion').value.trim() || '1.0',
     categoria_id: document.getElementById('productoCategoriaId').value || null,
     precio_base: Number(document.getElementById('productoPrecio').value) || 0,
-    moneda: document.getElementById('productoMoneda').value,
+    moneda: 'PEN',
     tipo_licencia: document.getElementById('productoTipo').value,
     activo: document.getElementById('productoActivo').value === 'true',
   };
@@ -895,7 +987,6 @@ async function saveProducto() {
   closeModal('modalProducto');
   await loadProductos();
   fillSelectsCategorias();
-  fillSelectsProductos();
 }
 
 // ============================================================
@@ -903,8 +994,7 @@ async function saveProducto() {
 // ============================================================
 async function loadVentas() {
   const { data, error } = await sb.from('ventas')
-    // 👇 Desambiguamos la relación ventas↔licencias usando la FK ventas.licencia_id
-    .select('*, clientes(nombre), productos(nombre, version), licencias!ventas_licencia_id_fkey(clave, correo, link_descarga, tipo)')
+    .select('*, clientes(nombre, dni, celular), productos(nombre, version), licencias!ventas_licencia_id_fkey(clave, correo, link_descarga, tipo)')
     .order('fecha_venta', { ascending: false });
   if (error) return toast('Error ventas: ' + error.message, 'error');
   state.ventas = data;
@@ -933,10 +1023,10 @@ function renderVentas() {
       : '—';
     return `<tr>
       <td>${fmtDate(v.fecha_venta)}</td>
-      <td>${esc(v.clientes?.nombre || '—')}</td>
+      <td>${esc(v.clientes?.nombre || '—')}<div style="font-size:11px;color:var(--muted)">DNI ${esc(v.clientes?.dni||'—')}</div></td>
       <td>${esc(v.productos?.nombre || '—')}</td>
-      <td>${esc(v.version || v.productos?.version || '—')}</td>
-      <td>${fmtMoney(v.precio_venta, v.moneda || 'PEN')}</td>
+      <td><span class="ver" style="color:var(--muted);font-weight:600">Versión ${esc(v.version || v.productos?.version || '—')}</span></td>
+      <td>${fmtMoney(v.precio_venta)}</td>
       <td>${esc(v.tipo_licencia)}</td>
       <td>${caducaBadge}</td>
       <td>${licBadge}</td>
@@ -953,28 +1043,36 @@ function renderVentas() {
 function openVentaModal(id=null) {
   document.getElementById('modalVentaTitle').textContent = id ? 'Editar venta' : 'Nueva venta';
   document.getElementById('ventaId').value = id || '';
+  document.getElementById('ventaClienteId').value = '';
+  document.getElementById('ventaProductoId').value = '';
+  document.getElementById('buscarCliente').value = '';
   document.getElementById('buscarProducto').value = '';
-  setOptions(document.getElementById('ventaCliente'), state.clientes, 'id', c => c.nombre, '— Selecciona cliente —');
-  fillSelectsProductos();
+  document.getElementById('clienteSeleccionadoHint').textContent = 'Sin cliente seleccionado.';
+  document.getElementById('productoSeleccionadoHint').textContent = 'Sin producto seleccionado.';
+  hideAc('acClientes'); hideAc('acProductos');
 
   if (id) {
     const v = state.ventas.find(x => x.id === id);
-    document.getElementById('ventaCliente').value = v?.cliente_id || '';
-    document.getElementById('ventaProducto').value = v?.producto_id || '';
-    document.getElementById('ventaPrecio').value = v?.precio_venta ?? 0;
-    document.getElementById('ventaMoneda').value = v?.moneda || 'PEN';
-    document.getElementById('ventaTipo').value = v?.tipo_licencia || 'Perpetua';
-    document.getElementById('ventaSO').value = v?.sistema_operativo || '';
-    document.getElementById('ventaDescripcion').value = v?.descripcion || '';
-    document.getElementById('ventaDatosLicencia').value = v?.datos_licencia || '';
-    document.getElementById('ventaCaducidad').value = v?.fecha_caducidad || '';
-    document.getElementById('ventaCorreoSuscripcion').value = v?.correo_suscripcion || '';
-    document.getElementById('ventaAnotaciones').value = v?.anotaciones || '';
+    if (v) {
+      document.getElementById('ventaClienteId').value = v.cliente_id || '';
+      document.getElementById('buscarCliente').value = v.clientes?.nombre || '';
+      document.getElementById('clienteSeleccionadoHint').innerHTML = `✅ ${esc(v.clientes?.nombre || '')}`;
+      document.getElementById('ventaProductoId').value = v.producto_id || '';
+      document.getElementById('buscarProducto').value = v.productos?.nombre || '';
+      document.getElementById('productoSeleccionadoHint').innerHTML = `✅ ${esc(v.productos?.nombre || '')} <span class="ver">Versión ${esc(v.productos?.version || '')}</span>`;
+      document.getElementById('ventaPrecio').value = v.precio_venta ?? 0;
+      document.getElementById('ventaTipo').value = v.tipo_licencia || 'Perpetua';
+      document.getElementById('ventaSO').value = v.sistema_operativo || '';
+      document.getElementById('ventaDescripcion').value = v.descripcion || '';
+      document.getElementById('ventaDatosLicencia').value = v.datos_licencia || '';
+      document.getElementById('ventaCaducidad').value = v.fecha_caducidad || '';
+      document.getElementById('ventaCorreoSuscripcion').value = v.correo_suscripcion || '';
+      document.getElementById('ventaAnotaciones').value = v.anotaciones || '';
+      onTipoLicenciaChange();
+      actualizarStockVenta();
+    }
   } else {
-    document.getElementById('ventaCliente').value = '';
-    document.getElementById('ventaProducto').value = '';
     document.getElementById('ventaPrecio').value = 0;
-    document.getElementById('ventaMoneda').value = 'PEN';
     document.getElementById('ventaTipo').value = 'Perpetua';
     document.getElementById('ventaSO').value = '';
     document.getElementById('ventaDescripcion').value = '';
@@ -982,22 +1080,48 @@ function openVentaModal(id=null) {
     document.getElementById('ventaCaducidad').value = '';
     document.getElementById('ventaCorreoSuscripcion').value = '';
     document.getElementById('ventaAnotaciones').value = '';
+    onTipoLicenciaChange();
+    actualizarStockVenta();
   }
-  onTipoLicenciaChange();
-  actualizarStockVenta();
   openModal('modalVenta');
 }
 
-function onProductoChange() {
-  const pid = document.getElementById('ventaProducto').value;
-  const p = state.productos.find(x => x.id === pid);
-  if (p) {
-    document.getElementById('ventaPrecio').value = p.precio_base;
-    document.getElementById('ventaMoneda').value = p.moneda || 'PEN';
-    document.getElementById('ventaTipo').value = p.tipo_licencia;
-    onTipoLicenciaChange();
-  }
-  actualizarStockVenta();
+// --- Buscador de clientes ---
+function onBuscarCliente() {
+  const q = document.getElementById('buscarCliente').value.trim().toLowerCase();
+  const items = state.clientes.filter(c => {
+    if (!q) return true;
+    return c.nombre.toLowerCase().includes(q)
+      || (c.dni || '').includes(q)
+      || (c.celular || '').includes(q);
+  }).slice(0, 12);
+  renderAcList('acClientes', items,
+    c => `<div><strong>${esc(c.nombre)}</strong></div><div class="sub">DNI ${esc(c.dni||'—')} · Cel ${esc(c.celular||'—')}</div>`,
+    c => {
+      document.getElementById('ventaClienteId').value = c.id;
+      document.getElementById('buscarCliente').value = c.nombre;
+      document.getElementById('clienteSeleccionadoHint').innerHTML = `✅ ${esc(c.nombre)} — DNI ${esc(c.dni)} — Cel ${esc(c.celular)}`;
+    });
+}
+
+// --- Buscador de productos ---
+function onBuscarProducto() {
+  const q = document.getElementById('buscarProducto').value.trim().toLowerCase();
+  const items = state.productos.filter(p => p.activo).filter(p => {
+    if (!q) return true;
+    return p.nombre.toLowerCase().includes(q) || String(p.version).toLowerCase().includes(q);
+  }).slice(0, 12);
+  renderAcList('acProductos', items,
+    p => `<div><strong>${esc(p.nombre)}</strong> <span class="ver">Versión ${esc(p.version)}</span></div><div class="sub">${esc(p.categorias?.nombre || '')} · ${fmtMoney(p.precio_base)} · ${esc(p.tipo_licencia)}</div>`,
+    p => {
+      document.getElementById('ventaProductoId').value = p.id;
+      document.getElementById('buscarProducto').value = p.nombre;
+      document.getElementById('productoSeleccionadoHint').innerHTML = `✅ ${esc(p.nombre)} <span class="ver">Versión ${esc(p.version)}</span>`;
+      document.getElementById('ventaPrecio').value = p.precio_base;
+      document.getElementById('ventaTipo').value = p.tipo_licencia;
+      onTipoLicenciaChange();
+      actualizarStockVenta();
+    });
 }
 
 function onTipoLicenciaChange() {
@@ -1015,48 +1139,42 @@ function onTipoLicenciaChange() {
 }
 
 function actualizarStockVenta() {
-  const pid = document.getElementById('ventaProducto').value;
+  const pid = document.getElementById('ventaProductoId').value;
   const box = document.getElementById('ventaStockBox');
   const btn = document.getElementById('btnGuardarVenta');
-  const selLic = document.getElementById('ventaLicencia');
-
   if (!pid) {
     box.className = 'stock-box';
     box.textContent = 'Selecciona un producto para ver el stock.';
-    setOptions(selLic, [], 'id', () => '', 'Automática (la más antigua disponible)');
-    btn.disabled = false;
+    btn.disabled = true;
     return;
   }
-
   const disp = state.licencias.filter(l => l.estado === 'Disponible' && l.producto_id === pid);
   if (disp.length === 0) {
     box.className = 'stock-box danger';
     box.textContent = '⚠ No hay licencias en stock para este producto. Agrega una licencia en el módulo "Licencias" antes de vender.';
-    setOptions(selLic, [], 'id', () => '', 'Sin licencias disponibles');
     btn.disabled = true;
   } else {
     box.className = 'stock-box ok';
     box.textContent = `✅ ${disp.length} licencia(s) disponible(s) para este producto.`;
-    setOptions(selLic, disp, 'id', l => {
-      const t = l.tipo === 'prueba' ? 'Prueba' : l.tipo === 'pago' ? 'Pago' : 'Gratuita';
-      return `${t} · ${l.clave || l.correo || l.link_descarga || '—'}`;
-    }, 'Automática (la más antigua disponible)');
     btn.disabled = false;
   }
 }
 
 async function saveVenta() {
   const id = document.getElementById('ventaId').value;
-  const licId = document.getElementById('ventaLicencia').value || null;
+  const cliente_id = document.getElementById('ventaClienteId').value;
+  const producto_id = document.getElementById('ventaProductoId').value;
   const tipo = document.getElementById('ventaTipo').value;
   const caducidad = document.getElementById('ventaCaducidad').value || null;
+  if (!cliente_id) return toast('Selecciona un cliente', 'error');
+  if (!producto_id) return toast('Selecciona un producto', 'error');
   if (tipo === 'Suscripción' && !caducidad) return toast('La fecha de caducidad es obligatoria para suscripciones', 'error');
 
   const payload = {
-    cliente_id: document.getElementById('ventaCliente').value,
-    producto_id: document.getElementById('ventaProducto').value,
+    cliente_id,
+    producto_id,
     precio_venta: Number(document.getElementById('ventaPrecio').value) || 0,
-    moneda: document.getElementById('ventaMoneda').value,
+    moneda: 'PEN',
     tipo_licencia: tipo,
     sistema_operativo: document.getElementById('ventaSO').value.trim() || null,
     descripcion: document.getElementById('ventaDescripcion').value.trim() || null,
@@ -1065,18 +1183,17 @@ async function saveVenta() {
     correo_suscripcion: document.getElementById('ventaCorreoSuscripcion').value.trim() || null,
     anotaciones: document.getElementById('ventaAnotaciones').value.trim() || null,
   };
-  if (!payload.cliente_id || !payload.producto_id) return toast('Cliente y producto son obligatorios', 'error');
 
   if (id) {
     const { error } = await sb.from('ventas').update(payload).eq('id', id);
     if (error) return toast(error.message, 'error');
     toast('Venta actualizada');
   } else {
-    const { data, error } = await sb.rpc('vender_con_licencia', {
+    const { error } = await sb.rpc('vender_con_licencia', {
       p_cliente_id: payload.cliente_id,
       p_producto_id: payload.producto_id,
       p_precio: payload.precio_venta,
-      p_moneda: payload.moneda,
+      p_moneda: 'PEN',
       p_tipo_licencia: payload.tipo_licencia,
       p_sistema_operativo: payload.sistema_operativo,
       p_descripcion: payload.descripcion,
@@ -1084,13 +1201,109 @@ async function saveVenta() {
       p_fecha_caducidad: payload.fecha_caducidad,
       p_correo_suscripcion: payload.correo_suscripcion,
       p_anotaciones: payload.anotaciones,
-      p_licencia_id: licId
+      p_licencia_id: null
     });
     if (error) return toast('No se pudo registrar la venta: ' + error.message, 'error');
     toast('Venta registrada');
   }
 
   closeModal('modalVenta');
+  await loadVentas();
+  await loadLicencias();
+  await loadProductos();
+  renderDashboard();
+}
+
+// ============================================================
+// ASIGNAR LICENCIA (flujo desde Licencias)
+// ============================================================
+function asignarLicencia(licId) {
+  const l = state.licencias.find(x => x.id === licId);
+  if (!l) return toast('Licencia no encontrada', 'error');
+  asignarLicenciaActual = l;
+
+  const p = state.productos.find(x => x.id === l.producto_id);
+  const cat = categoriaNombreDe(l.producto_id);
+
+  document.getElementById('asignarLicId').value = l.id;
+  document.getElementById('asignarClienteId').value = '';
+  document.getElementById('asignarBuscarCliente').value = '';
+  document.getElementById('asignarClienteHint').textContent = 'Sin cliente seleccionado.';
+  hideAc('acClientesAsignar');
+  document.getElementById('asignarPrecio').value = p?.precio_base || 0;
+  document.getElementById('asignarTipo').value = p?.tipo_licencia || '';
+  document.getElementById('asignarCaducidad').value = l.fecha_expiracion || '';
+  document.getElementById('asignarAnotaciones').value = '';
+
+  const tipoLic = l.tipo === 'prueba' ? 'Prueba' : l.tipo === 'pago' ? 'Pago' : 'Gratuita';
+  const cred = [
+    l.clave ? `Clave: ${l.clave}` : '',
+    l.correo ? `Correo: ${l.correo}` : '',
+    l.link_descarga ? `Link: ${l.link_descarga}` : ''
+  ].filter(Boolean).join(' · ') || '—';
+
+  document.getElementById('asignarLicInfo').innerHTML = `
+    <div><strong>Producto:</strong> ${esc(p?.nombre || '—')} <span class="ver">Versión ${esc(p?.version || '')}</span></div>
+    <div><strong>Categoría:</strong> ${esc(cat)}</div>
+    <div><strong>Tipo de licencia:</strong> ${esc(tipoLic)} · <strong>Estado:</strong> ${esc(l.estado)}</div>
+    <div><strong>Credencial:</strong> <span style="font-family:monospace">${esc(cred)}</span></div>
+    <div><strong>Tipo de producto:</strong> ${esc(p?.tipo_licencia || '')}</div>
+  `;
+
+  const req = document.getElementById('asignarReqCad');
+  const cad = document.getElementById('asignarCaducidad');
+  if (p?.tipo_licencia === 'Perpetua') {
+    cad.value = '';
+    cad.disabled = true;
+    req.style.display = 'none';
+  } else {
+    cad.disabled = false;
+    req.style.display = 'inline';
+  }
+
+  openModal('modalAsignar');
+}
+
+function onAsignarBuscarCliente() {
+  const q = document.getElementById('asignarBuscarCliente').value.trim().toLowerCase();
+  const items = state.clientes.filter(c => {
+    if (!q) return true;
+    return c.nombre.toLowerCase().includes(q)
+      || (c.dni || '').includes(q)
+      || (c.celular || '').includes(q);
+  }).slice(0, 12);
+  renderAcList('acClientesAsignar', items,
+    c => `<div><strong>${esc(c.nombre)}</strong></div><div class="sub">DNI ${esc(c.dni||'—')} · Cel ${esc(c.celular||'—')}</div>`,
+    c => {
+      document.getElementById('asignarClienteId').value = c.id;
+      document.getElementById('asignarBuscarCliente').value = c.nombre;
+      document.getElementById('asignarClienteHint').innerHTML = `✅ ${esc(c.nombre)} — DNI ${esc(c.dni)} — Cel ${esc(c.celular)}`;
+    });
+}
+
+async function confirmarAsignarLicencia() {
+  const licId = document.getElementById('asignarLicId').value;
+  const cliente_id = document.getElementById('asignarClienteId').value;
+  const precio = Number(document.getElementById('asignarPrecio').value) || 0;
+  const caducidad = document.getElementById('asignarCaducidad').value || null;
+  const anotaciones = document.getElementById('asignarAnotaciones').value.trim() || null;
+  const p = state.productos.find(x => x.id === asignarLicenciaActual?.producto_id);
+
+  if (!cliente_id) return toast('Selecciona un cliente', 'error');
+  if (p?.tipo_licencia === 'Suscripción' && !caducidad) return toast('La fecha de caducidad es obligatoria para suscripción', 'error');
+
+  const { error } = await sb.rpc('vender_desde_licencia', {
+    p_licencia_id: licId,
+    p_cliente_id: cliente_id,
+    p_precio: precio,
+    p_anotaciones: anotaciones,
+    p_fecha_caducidad: p?.tipo_licencia === 'Perpetua' ? null : caducidad,
+    p_sistema_operativo: null,
+    p_descripcion: null
+  });
+  if (error) return toast('Error: ' + error.message, 'error');
+  toast('Licencia asignada y venta registrada');
+  closeModal('modalAsignar');
   await loadVentas();
   await loadLicencias();
   await loadProductos();
@@ -1107,7 +1320,7 @@ function openDevolucionModal(ventaId) {
   document.getElementById('devolucionMonto').value = v ? v.precio_venta : 0;
   document.getElementById('devolucionReutilizar').checked = false;
   document.getElementById('devolucionInfo').textContent = v
-    ? `Venta de ${v.productos?.nombre || 'producto'} ${v.version ? 'v'+v.version : ''} a ${v.clientes?.nombre || 'cliente'} por ${fmtMoney(v.precio_venta, v.moneda)}`
+    ? `Venta de ${v.productos?.nombre || 'producto'} Versión ${v.version || ''} a ${v.clientes?.nombre || 'cliente'} por ${fmtMoney(v.precio_venta)}`
     : '';
   openModal('modalDevolucion');
 }
@@ -1181,7 +1394,7 @@ function renderLicencias() {
       l.correo ? `<div style="font-size:11px;color:#64748b">✉ ${esc(l.correo)}</div>` : '',
       l.link_descarga ? `<div style="font-size:11px;color:#64748b">🔗 link</div>` : ''
     ].filter(Boolean).join('') || '—';
-    const prodLabel = l.productos ? `${esc(l.productos.nombre)} v${esc(l.productos.version || '')}` : '—';
+    const prodLabel = l.productos ? `${esc(l.productos.nombre)} <span class="ver">Versión ${esc(l.productos.version || '')}</span>` : '—';
     return `<tr>
       <td>${cred}</td>
       <td>${tipo}</td>
@@ -1265,19 +1478,6 @@ async function agregarLicencia() {
   renderDashboard();
 }
 
-function asignarLicencia(licId) {
-  openVentaModal();
-  const lic = state.licencias.find(l => l.id === licId);
-  if (lic) {
-    document.getElementById('ventaProducto').value = lic.producto_id;
-    onProductoChange();
-    setTimeout(() => {
-      actualizarStockVenta();
-      document.getElementById('ventaLicencia').value = licId;
-    }, 50);
-  }
-}
-
 async function liberarLicencia(licId) {
   if (!confirm('¿Liberar esta licencia? Volverá a Disponible y se desvinculará del cliente.')) return;
   const { error } = await sb.rpc('liberar_licencia', { p_licencia_id: licId, p_reutilizar: true });
@@ -1351,7 +1551,10 @@ function verBoleta(ventaId) {
 
   const lineas = [];
   lineas.push(`<div class="boleta-row"><span class="k">Cliente:</span><span class="v">${esc(v.clientes?.nombre || '—')}</span></div>`);
-  lineas.push(`<div class="boleta-row"><span class="k">Producto:</span><span class="v">${esc(v.productos?.nombre || '—')} ${v.version ? 'v'+esc(v.version) : ''}</span></div>`);
+  if (v.clientes?.dni) lineas.push(`<div class="boleta-row"><span class="k">DNI:</span><span class="v">${esc(v.clientes.dni)}</span></div>`);
+  if (v.clientes?.celular) lineas.push(`<div class="boleta-row"><span class="k">Celular:</span><span class="v">${esc(v.clientes.celular)}</span></div>`);
+  lineas.push(`<div class="boleta-row"><span class="k">Producto:</span><span class="v">${esc(v.productos?.nombre || '—')}</span></div>`);
+  lineas.push(`<div class="boleta-row"><span class="k">Versión:</span><span class="v">${esc(v.version || v.productos?.version || '—')}</span></div>`);
   lineas.push(`<div class="boleta-row"><span class="k">Tipo:</span><span class="v">${esc(v.tipo_licencia)}${v.es_prueba ? ' (PRUEBA)' : ''}</span></div>`);
   if (v.sistema_operativo) lineas.push(`<div class="boleta-row"><span class="k">Sistema:</span><span class="v">${esc(v.sistema_operativo)}</span></div>`);
   if (v.datos_licencia) lineas.push(`<div class="boleta-row"><span class="k">Licencia:</span><span class="v">${esc(v.datos_licencia)}</span></div>`);
@@ -1373,7 +1576,7 @@ function verBoleta(ventaId) {
       <p>Fecha: ${fmtDate(v.fecha_venta)}</p>
     </div>
     ${lineas.join('')}
-    <div class="boleta-total"><span>TOTAL</span><span>${fmtMoney(v.precio_venta, v.moneda || 'PEN')}</span></div>
+    <div class="boleta-total"><span>TOTAL</span><span>${fmtMoney(v.precio_venta)}</span></div>
     <div class="boleta-foot">
       <p>Gracias por su compra</p>
       <p>Documento virtual — no válido como comprobante fiscal</p>
