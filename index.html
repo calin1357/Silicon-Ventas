@@ -6,6 +6,7 @@
 <title>Silicon Ventas</title>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="https://cdn.jsdelivr.net/npm/html2pdf.js@0.10.1/dist/html2pdf.bundle.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js"></script>
 <style>
   :root { --bg: #f1f5f9; --panel: #fff; --ink: #0f172a; --muted: #64748b; --line: #e2e8f0; --brand: #2563eb; --brand-dark: #1d4ed8; --ok: #16a34a; --warn: #d97706; --danger: #dc2626; --radius: 12px; }
   * { box-sizing: border-box; }
@@ -670,8 +671,8 @@ function verBoleta(ventaId) {
   const correlativo = nextCorrelativo(); boletaActual = { venta: v, correlativo };
   const lineas = [];
   
+  // Celular eliminado
   if (v.clientes?.dni) lineas.push(`<div class="boleta-row"><span class="k">DNI:</span><span class="v">${esc(v.clientes.dni)}</span></div>`);
-  if (v.clientes?.celular) lineas.push(`<div class="boleta-row"><span class="k">Celular:</span><span class="v">${esc(v.clientes.celular)}</span></div>`);
   lineas.push(`<div class="boleta-row"><span class="k">Cliente:</span><span class="v">${esc(v.clientes?.nombre || '—')}</span></div>`);
   
   lineas.push(`<div class="boleta-row"><span class="k">Producto:</span><span class="v">${esc(v.productos?.nombre || '—')}</span></div>`);
@@ -680,18 +681,17 @@ function verBoleta(ventaId) {
   const tipoLabel = v.incluye_servicio ? 'Licencia e Instalación' : v.tipo_licencia;
   lineas.push(`<div class="boleta-row"><span class="k">Tipo:</span><span class="v">${esc(tipoLabel)}${v.es_prueba ? ' (PRUEBA)' : ''}</span></div>`);
   
-  if (v.sistema_operativo) lineas.push(`<div class="boleta-row"><span class="k">Sistema:</span><span class="v">${esc(v.sistema_operativo)}</span></div>`);
-  
   if (v.licencias) {
     if (v.licencias.clave) lineas.push(`<div class="boleta-row"><span class="k">Licencia:</span><span class="v">${esc(v.licencias.clave)}</span></div>`);
     if (v.licencias.correo) lineas.push(`<div class="boleta-row"><span class="k">Correo Lic.:</span><span class="v">${esc(v.licencias.correo)}</span></div>`);
-    if (v.licencias.link_descarga) lineas.push(`<div class="boleta-row"><span class="k">Link:</span><span class="v">${esc(v.licencias.link_descarga)}</span></div>`);
   }
   
   if (v.fecha_caducidad) lineas.push(`<div class="boleta-row"><span class="k">Caduca:</span><span class="v">${fmtDate(v.fecha_caducidad)}</span></div>`);
-  if (v.correo_suscripcion) lineas.push(`<div class="boleta-row"><span class="k">Correo suscripción:</span><span class="v">${esc(v.correo_suscripcion)}</span></div>`);
   if (v.descripcion) lineas.push(`<div class="boleta-row"><span class="k">Descripción:</span><span class="v">${esc(v.descripcion)}</span></div>`);
-  if (v.anotaciones) lineas.push(`<div class="boleta-row"><span class="k">Anotaciones:</span><span class="v">${esc(v.anotaciones)}</span></div>`);
+
+  // URL para el QR (ajusta esto si tu web está publicada en un dominio real)
+  const urlPublica = window.location.origin + window.location.pathname.replace('index.html', 'boleta.html');
+  const urlBoleta = `${urlPublica}?id=${v.id}&corr=${correlativo}`;
 
   document.getElementById('boletaRender').innerHTML = `
     <div class="boleta-head">
@@ -702,6 +702,12 @@ function verBoleta(ventaId) {
     </div>
     ${lineas.join('')}
     <div class="boleta-total"><span>TOTAL</span><span>${fmtMoney(v.precio_venta)}</span></div>
+    
+    <div style="text-align: center; margin-top: 20px;">
+        <div id="qr-boleta" style="display: inline-block; padding: 10px; background: #fff; border: 1px solid #e2e8f0; border-radius: 8px;"></div>
+        <p style="font-size: 11px; color: #777; margin-top: 5px;">Escanee para ver su boleta digital</p>
+    </div>
+
     <div class="boleta-foot">
       <p>Gracias por su compra</p>
       <p>Documento virtual — no válido como comprobante fiscal</p>
@@ -709,6 +715,18 @@ function verBoleta(ventaId) {
       <div class="vendedor">Celular: ${esc(VENDEDOR.celular)}</div>
     </div>
   `;
+
+  setTimeout(() => {
+      new QRCode(document.getElementById("qr-boleta"), {
+          text: urlBoleta,
+          width: 100,
+          height: 100,
+          colorDark : "#000000",
+          colorLight : "#ffffff",
+          correctLevel : QRCode.CorrectLevel.H
+      });
+  }, 50);
+
   openModal('modalBoleta');
 }
 
