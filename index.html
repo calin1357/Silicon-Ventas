@@ -84,11 +84,12 @@
   .badge.orange { background: #ffedd5; color: #9a3412; }
   .badge.red { background: #fee2e2; color: #991b1b; }
   .badge.blue { background: #dbeafe; color: #1e40af; }
+  .badge.purple { background: #ede9fe; color: #5b21b6; }
 
   .modal-bg { position: fixed; inset: 0; background: rgba(15,23,42,.55); display: none;
     align-items: flex-start; justify-content: center; padding: 40px 16px; overflow-y: auto; z-index: 100; }
   .modal-bg.show { display: flex; }
-  .modal { background: #fff; border-radius: var(--radius); width: 100%; max-width: 640px; box-shadow: 0 20px 60px rgba(0,0,0,.3); }
+  .modal { background: #fff; border-radius: var(--radius); width: 100%; max-width: 680px; box-shadow: 0 20px 60px rgba(0,0,0,.3); }
   .modal-head { padding: 18px 22px; border-bottom: 1px solid var(--line); display: flex; justify-content: space-between; align-items: center; }
   .modal-head h3 { margin: 0; font-size: 16px; }
   .modal-head button { background: transparent; border: 0; font-size: 20px; color: var(--muted); cursor: pointer; }
@@ -101,6 +102,7 @@
   .form-grid input, .form-grid select, .form-grid textarea { width: 100%; padding: 9px 11px; border: 1px solid var(--line); border-radius: 8px; font-size: 13px; }
   .form-grid input:focus, .form-grid select:focus, .form-grid textarea:focus { outline: none; border-color: var(--brand); box-shadow: 0 0 0 3px rgba(37,99,235,.12); }
   .form-grid textarea { resize: vertical; min-height: 70px; }
+  .hint { font-size: 11px; color: var(--muted); margin-top: 3px; }
 
   #toast { position: fixed; bottom: 24px; right: 24px; display: flex; flex-direction: column; gap: 8px; z-index: 200; }
   .toast-item { background: #0f172a; color: #fff; padding: 12px 18px; border-radius: 8px; font-size: 13px; box-shadow: 0 10px 30px rgba(0,0,0,.2); animation: slideIn .2s ease; }
@@ -111,6 +113,9 @@
   .filters { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 12px; }
   .filters select, .filters input { padding: 7px 10px; border: 1px solid var(--line); border-radius: 8px; font-size: 13px; }
   .actions { display: flex; gap: 6px; flex-wrap: wrap; }
+  .tabs { display: flex; gap: 6px; margin-bottom: 12px; flex-wrap: wrap; }
+  .tab { padding: 7px 14px; border-radius: 999px; border: 1px solid var(--line); background: #fff; font-size: 13px; font-weight: 600; color: var(--muted); }
+  .tab.active { background: var(--brand); color: #fff; border-color: var(--brand); }
 
   /* BOLETA */
   #boletaRender { background: #fff; padding: 28px; font-family: 'Courier New', monospace; color: #111; }
@@ -123,6 +128,7 @@
   .boleta-row .v { font-weight: bold; text-align: right; max-width: 60%; word-break: break-all; }
   .boleta-total { display: flex; justify-content: space-between; font-size: 16px; font-weight: bold; margin-top: 14px; padding-top: 10px; border-top: 2px solid #111; }
   .boleta-foot { text-align: center; font-size: 11px; color: #777; margin-top: 18px; border-top: 1px dashed #999; padding-top: 10px; }
+  .boleta-foot .vendedor { font-size: 12px; color: #111; font-weight: bold; margin-top: 6px; }
 
   @media (max-width: 820px) {
     #appView.show { flex-direction: column; }
@@ -158,9 +164,10 @@
     <div class="brand">🛡️ Silicon Ventas</div>
     <button class="nav-item active" data-view="dashboard" onclick="switchView('dashboard')">📊 Dashboard</button>
     <button class="nav-item" data-view="clientes" onclick="switchView('clientes')">👥 Clientes</button>
+    <button class="nav-item" data-view="categorias" onclick="switchView('categorias')">🏷️ Categorías</button>
     <button class="nav-item" data-view="productos" onclick="switchView('productos')">📦 Productos</button>
     <button class="nav-item" data-view="ventas" onclick="switchView('ventas')">🧾 Ventas</button>
-    <button class="nav-item" data-view="licencias" onclick="switchView('licencias')">🧪 Licencias de prueba</button>
+    <button class="nav-item" data-view="licencias" onclick="switchView('licencias')">🔑 Licencias</button>
     <div class="user-box">
       <div id="userName" style="color:#fff;font-weight:600"></div>
       <div id="userEmailSb" style="color:#94a3b8"></div>
@@ -195,6 +202,20 @@
       </div>
     </section>
 
+    <section id="view-categorias" style="display:none">
+      <h1 class="page-title">Categorías <small>Organiza tus productos por tipo</small></h1>
+      <div class="card">
+        <div class="card-head">
+          <h2>Listado</h2>
+          <button class="btn" onclick="openCategoriaModal()">+ Nueva categoría</button>
+        </div>
+        <div class="table-wrap"><table>
+          <thead><tr><th>Nombre</th><th>Descripción</th><th>Productos</th><th>Estado</th><th>Acciones</th></tr></thead>
+          <tbody id="categoriasTbody"></tbody>
+        </table></div>
+      </div>
+    </section>
+
     <section id="view-productos" style="display:none">
       <h1 class="page-title">Productos <small>Catálogo de servicios y software</small></h1>
       <div class="card">
@@ -203,7 +224,7 @@
           <button class="btn" onclick="openProductoModal()">+ Nuevo producto</button>
         </div>
         <div class="table-wrap"><table>
-          <thead><tr><th>Nombre</th><th>Categoría</th><th>Precio</th><th>Tipo</th><th>Antivirus</th><th>Estado</th><th>Acciones</th></tr></thead>
+          <thead><tr><th>Nombre</th><th>Categoría</th><th>Precio</th><th>Moneda</th><th>Tipo</th><th>Antivirus</th><th>Estado</th><th>Acciones</th></tr></thead>
           <tbody id="productosTbody"></tbody>
         </table></div>
       </div>
@@ -245,18 +266,32 @@
     </section>
 
     <section id="view-licencias" style="display:none">
-      <h1 class="page-title">Licencias de prueba <small>Pool de claves de 25 caracteres para antivirus</small></h1>
+      <h1 class="page-title">Licencias <small>Pool de licencias de pago, gratuitas y de prueba</small></h1>
       <div class="card">
         <div class="card-head"><h2>Agregar licencia</h2></div>
-        <div style="display:flex;gap:8px;flex-wrap:wrap">
-          <input id="nuevaClave" placeholder="Clave de 25 caracteres" maxlength="25"
-                 oninput="document.getElementById('contadorClave').textContent = this.value.length + ' / 25'"
-                 style="flex:1;min-width:220px;padding:9px 11px;border:1px solid var(--line);border-radius:8px;font-family:monospace" />
-          <input id="nuevaClaveExp" type="date" style="padding:9px 11px;border:1px solid var(--line);border-radius:8px" title="Fecha de expiración (opcional)" />
-          <button class="btn" onclick="agregarLicencia()">Agregar</button>
+        <div class="form-grid">
+          <div><label>Tipo</label>
+            <select id="nuevaLicTipo">
+              <option value="pago">De pago</option>
+              <option value="gratuita">Gratuita</option>
+              <option value="prueba">De prueba</option>
+            </select>
+          </div>
+          <div><label>Producto (opcional)</label><select id="nuevaLicProducto"></select></div>
+          <div class="full"><label>Clave (20–25 caracteres, opcional)</label>
+            <input id="nuevaLicClave" maxlength="25" style="font-family:monospace"
+                   oninput="document.getElementById('licCont').textContent = this.value.length + ' / 25'" />
+            <div class="hint" id="licCont">0 / 25</div>
+          </div>
+          <div><label>Correo (opcional)</label><input id="nuevaLicCorreo" type="email" /></div>
+          <div><label>Contraseña (opcional)</label><input id="nuevaLicPass" /></div>
+          <div class="full"><label>Link de descarga (opcional)</label><input id="nuevaLicLink" /></div>
+          <div><label>Fecha de expiración</label><input id="nuevaLicExp" type="date" /></div>
+          <div><label>Notas</label><input id="nuevaLicNotas" /></div>
         </div>
-        <div style="font-size:12px;color:var(--muted);margin-top:8px" id="contadorClave">0 / 25</div>
+        <div style="margin-top:14px"><button class="btn" onclick="agregarLicencia()">Agregar al pool</button></div>
       </div>
+
       <div class="card">
         <div class="card-head">
           <h2>Listado</h2>
@@ -265,10 +300,17 @@
             <option value="Disponible">Disponible</option>
             <option value="En uso">En uso</option>
             <option value="Usada">Usada</option>
+            <option value="Vencida">Vencida</option>
           </select>
         </div>
+        <div class="tabs" id="tabsLic">
+          <button class="tab active" data-filtro="todas" onclick="setTabLic('todas')">Todas</button>
+          <button class="tab" data-filtro="pago" onclick="setTabLic('pago')">De pago</button>
+          <button class="tab" data-filtro="gratuita" onclick="setTabLic('gratuita')">Gratuitas</button>
+          <button class="tab" data-filtro="prueba" onclick="setTabLic('prueba')">De prueba</button>
+        </div>
         <div class="table-wrap"><table>
-          <thead><tr><th>Clave</th><th>Estado</th><th>Asignada a</th><th>Asignación</th><th>Expira</th><th>Acciones</th></tr></thead>
+          <thead><tr><th>Credencial</th><th>Tipo</th><th>Producto</th><th>Estado</th><th>Asignada a</th><th>Expira</th><th>Acciones</th></tr></thead>
           <tbody id="licenciasTbody"></tbody>
         </table></div>
       </div>
@@ -294,6 +336,26 @@
   </div>
 </div>
 
+<div class="modal-bg" id="modalCategoria">
+  <div class="modal">
+    <div class="modal-head"><h3 id="modalCategoriaTitle">Nueva categoría</h3><button onclick="closeModal('modalCategoria')">×</button></div>
+    <div class="modal-body">
+      <input type="hidden" id="categoriaId" />
+      <div class="form-grid">
+        <div class="full"><label>Nombre *</label><input id="categoriaNombre" /></div>
+        <div class="full"><label>Descripción</label><input id="categoriaDescripcion" /></div>
+        <div><label>Activa</label>
+          <select id="categoriaActivo"><option value="true">Sí</option><option value="false">No</option></select>
+        </div>
+      </div>
+    </div>
+    <div class="modal-foot">
+      <button class="btn secondary" onclick="closeModal('modalCategoria')">Cancelar</button>
+      <button class="btn" onclick="saveCategoria()">Guardar</button>
+    </div>
+  </div>
+</div>
+
 <div class="modal-bg" id="modalProducto">
   <div class="modal">
     <div class="modal-head"><h3 id="modalProductoTitle">Nuevo producto</h3><button onclick="closeModal('modalProducto')">×</button></div>
@@ -301,13 +363,11 @@
       <input type="hidden" id="productoId" />
       <div class="form-grid">
         <div class="full"><label>Nombre *</label><input id="productoNombre" /></div>
-        <div><label>Categoría *</label>
-          <select id="productoCategoria">
-            <option>Antivirus</option><option>Ofimática</option><option>Software de programación</option>
-            <option>Diseño / gráfico</option><option>Utilidades / sistema</option><option>Otros</option>
-          </select>
-        </div>
+        <div><label>Categoría *</label><select id="productoCategoriaId"></select></div>
         <div><label>Precio base</label><input id="productoPrecio" type="number" step="0.01" value="0" /></div>
+        <div><label>Moneda</label>
+          <select id="productoMoneda"><option value="PEN">S/ Soles (PEN)</option><option value="USD">$ Dólares (USD)</option><option value="EUR">€ Euros (EUR)</option></select>
+        </div>
         <div><label>Tipo de licencia</label>
           <select id="productoTipo"><option>Perpetua</option><option>Suscripción</option></select>
         </div>
@@ -335,6 +395,9 @@
         <div><label>Cliente *</label><select id="ventaCliente"></select></div>
         <div><label>Producto *</label><select id="ventaProducto" onchange="onProductoChange()"></select></div>
         <div><label>Precio de venta *</label><input id="ventaPrecio" type="number" step="0.01" value="0" /></div>
+        <div><label>Moneda</label>
+          <select id="ventaMoneda"><option value="PEN">PEN</option><option value="USD">USD</option><option value="EUR">EUR</option></select>
+        </div>
         <div><label>Tipo de licencia</label>
           <select id="ventaTipo"><option>Perpetua</option><option>Suscripción</option></select>
         </div>
@@ -347,12 +410,12 @@
         <div><label>Correo de suscripción</label><input id="ventaCorreoSuscripcion" type="email" /></div>
         <div class="full"><label>Anotaciones</label><textarea id="ventaAnotaciones"></textarea></div>
         <div class="full" style="display:flex;align-items:center;gap:8px">
-          <input type="checkbox" id="ventaEsPrueba" style="width:auto" onchange="togglePruebaBox()" />
-          <label style="margin:0">Es licencia de prueba (se vinculará al pool)</label>
+          <input type="checkbox" id="ventaEsPrueba" style="width:auto" onchange="toggleLicenciaBox()" />
+          <label style="margin:0">Vincular licencia del pool (paga, gratuita o prueba)</label>
         </div>
-        <div class="full" id="ventaPruebaBox" style="display:none">
-          <label>Licencia de prueba a asignar</label>
-          <select id="ventaPruebaClave"><option value="">— Selecciona clave disponible —</option></select>
+        <div class="full" id="ventaLicenciaBox" style="display:none">
+          <label>Licencia a asignar</label>
+          <select id="ventaLicencia"><option value="">— Selecciona licencia disponible —</option></select>
         </div>
       </div>
     </div>
@@ -373,7 +436,7 @@
         <div><label>Monto reembolsado</label><input id="devolucionMonto" type="number" step="0.01" value="0" /></div>
         <div class="full" style="display:flex;align-items:center;gap:8px">
           <input type="checkbox" id="devolucionReutilizar" style="width:auto" />
-          <label style="margin:0">Reutilizar licencia de prueba (volver a Disponible)</label>
+          <label style="margin:0">Reutilizar licencia (volver a Disponible)</label>
         </div>
       </div>
     </div>
@@ -384,7 +447,34 @@
   </div>
 </div>
 
-<!-- MODAL BOLETA -->
+<div class="modal-bg" id="modalLicenciaEdit">
+  <div class="modal">
+    <div class="modal-head"><h3>Editar licencia</h3><button onclick="closeModal('modalLicenciaEdit')">×</button></div>
+    <div class="modal-body">
+      <input type="hidden" id="editLicId" />
+      <div class="form-grid">
+        <div><label>Tipo</label>
+          <select id="editLicTipo"><option value="pago">De pago</option><option value="gratuita">Gratuita</option><option value="prueba">De prueba</option></select>
+        </div>
+        <div><label>Estado</label>
+          <select id="editLicEstado"><option>Disponible</option><option>En uso</option><option>Usada</option><option>Vencida</option></select>
+        </div>
+        <div><label>Producto</label><select id="editLicProducto"></select></div>
+        <div><label>Expira</label><input id="editLicExp" type="date" /></div>
+        <div class="full"><label>Clave (20–25)</label><input id="editLicClave" maxlength="25" style="font-family:monospace" /></div>
+        <div><label>Correo</label><input id="editLicCorreo" type="email" /></div>
+        <div><label>Contraseña</label><input id="editLicPass" /></div>
+        <div class="full"><label>Link de descarga</label><input id="editLicLink" /></div>
+        <div class="full"><label>Notas</label><input id="editLicNotas" /></div>
+      </div>
+    </div>
+    <div class="modal-foot">
+      <button class="btn secondary" onclick="closeModal('modalLicenciaEdit')">Cancelar</button>
+      <button class="btn" onclick="saveLicenciaEdit()">Guardar</button>
+    </div>
+  </div>
+</div>
+
 <div class="modal-bg" id="modalBoleta">
   <div class="modal" style="max-width:520px">
     <div class="modal-head"><h3>🧾 Boleta de venta</h3><button onclick="closeModal('modalBoleta')">×</button></div>
@@ -402,7 +492,7 @@
 
 <script>
 // ============================================================
-// PROTECCIÓN (disuasión, no seguridad real)
+// PROTECCIÓN (disuasión)
 // ============================================================
 document.addEventListener('contextmenu', e => { e.preventDefault(); return false; });
 document.addEventListener('keydown', e => {
@@ -410,8 +500,6 @@ document.addEventListener('keydown', e => {
   if (e.ctrlKey && e.shiftKey && ['I','J','C'].includes(e.key.toUpperCase())) { e.preventDefault(); return false; }
   if (e.ctrlKey && ['U','S'].includes(e.key.toUpperCase())) { e.preventDefault(); return false; }
 });
-document.addEventListener('selectstart', e => { if (e.target.tagName !== 'INPUT' && e.target.tagName !== 'TEXTAREA') e.preventDefault(); });
-document.addEventListener('copy', e => { if (e.target.tagName !== 'INPUT' && e.target.tagName !== 'TEXTAREA') e.preventDefault(); });
 
 // ============================================================
 // CONFIG
@@ -420,16 +508,22 @@ const SUPABASE_URL = 'https://dbewulhcbhgfwlchirjg.supabase.co';
 const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRiZXd1bGhjYmhnZndsY2hpcmpnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTIyNTg3MTEsImV4cCI6MjEwNzgzNDcxMX0.ia2nN9AST_wyq8JykP0xPBMoICXc0U33k72uAPBCy6U';
 const sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
-let state = { clientes: [], productos: [], ventas: [], licencias: [] };
+const VENDEDOR = { nombre: 'Juan Carlos Condor Irigoin', celular: '988932324' };
+
+let state = { clientes: [], categorias: [], productos: [], ventas: [], licencias: [] };
 let devolucionVentaId = null;
 let boletaActual = null;
+let tabLicActual = 'todas';
 
 // ============================================================
 // UTILIDADES
 // ============================================================
 function esc(s) { return String(s ?? '').replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m])); }
-function fmtDate(d) { if (!d) return '—'; return new Date(d).toLocaleDateString('es-ES', { year:'numeric', month:'short', day:'numeric' }); }
-function fmtMoney(n) { return '$' + Number(n || 0).toFixed(2); }
+function fmtDate(d) { if (!d) return '—'; return new Date(d).toLocaleDateString('es-PE', { year:'numeric', month:'short', day:'numeric' }); }
+function fmtMoney(n, moneda='PEN') {
+  const sym = moneda === 'USD' ? '$' : moneda === 'EUR' ? '€' : 'S/';
+  return `${sym} ${Number(n || 0).toFixed(2)}`;
+}
 function toast(msg, type='ok') {
   const el = document.createElement('div');
   el.className = 'toast-item ' + type;
@@ -451,10 +545,6 @@ function setOptions(select, items, valueKey, labelFn, placeholder) {
   });
   if (cur) select.value = cur;
 }
-
-// ============================================================
-// CORRELATIVO (localStorage, sin BD)
-// ============================================================
 function nextCorrelativo() {
   const hoy = new Date();
   const ymd = `${hoy.getFullYear()}${String(hoy.getMonth()+1).padStart(2,'0')}${String(hoy.getDate()).padStart(2,'0')}`;
@@ -497,20 +587,19 @@ async function boot() {
 }
 
 async function loadAll() {
-  await Promise.all([loadClientes(), loadProductos(), loadVentas(), loadLicencias()]);
+  await Promise.all([loadClientes(), loadCategorias(), loadProductos(), loadVentas(), loadLicencias()]);
   renderDashboard();
   renderFiltroClientes();
+  fillSelectsCategorias();
+  fillSelectsProductos();
 }
 
 function renderFiltroClientes() {
   setOptions(document.getElementById('filtroCliente'), state.clientes, 'id', c => c.nombre, 'Todos los clientes');
 }
 
-// ============================================================
-// NAVEGACIÓN
-// ============================================================
 function switchView(name) {
-  ['dashboard','clientes','productos','ventas','licencias'].forEach(v => {
+  ['dashboard','clientes','categorias','productos','ventas','licencias'].forEach(v => {
     document.getElementById('view-' + v).style.display = (v === name) ? 'block' : 'none';
   });
   document.querySelectorAll('.nav-item').forEach(b => b.classList.toggle('active', b.dataset.view === name));
@@ -526,7 +615,8 @@ function renderDashboard() {
     const d = new Date(v.fecha_venta); const now = new Date();
     return d.getMonth() === now.getMonth() && d.getFullYear() === now.getFullYear();
   });
-  const ingresos = ventasMes.reduce((s, v) => s + Number(v.precio_venta || 0), 0);
+  // Sumar solo PEN para el total principal
+  const ingresosPEN = ventasMes.filter(v => (v.moneda||'PEN') === 'PEN').reduce((s, v) => s + Number(v.precio_venta || 0), 0);
   const licDisp = state.licencias.filter(l => l.estado === 'Disponible').length;
   const porVencer = state.ventas.filter(v => {
     if ((v.estado || 'Activa') !== 'Activa') return false;
@@ -537,7 +627,7 @@ function renderDashboard() {
   document.getElementById('metrics').innerHTML = `
     <div class="metric"><div class="label">Clientes</div><div class="value">${totalClientes}</div></div>
     <div class="metric"><div class="label">Ventas del mes</div><div class="value">${ventasMes.length}</div></div>
-    <div class="metric"><div class="label">Ingresos del mes</div><div class="value ok">${fmtMoney(ingresos)}</div></div>
+    <div class="metric"><div class="label">Ingresos del mes (PEN)</div><div class="value ok">${fmtMoney(ingresosPEN, 'PEN')}</div></div>
     <div class="metric"><div class="label">Licencias disponibles</div><div class="value">${licDisp}</div></div>
     <div class="metric"><div class="label">Próximas a vencer</div><div class="value warn">${porVencer.length}</div></div>
   `;
@@ -572,7 +662,6 @@ async function loadClientes() {
       </td>
     </tr>`).join('') || '<tr><td colspan="4" class="empty">Sin clientes</td></tr>';
 }
-
 function openClienteModal(id=null) {
   document.getElementById('modalClienteTitle').textContent = id ? 'Editar cliente' : 'Nuevo cliente';
   document.getElementById('clienteId').value = id || '';
@@ -618,40 +707,119 @@ function venderACliente(clienteId) {
 }
 
 // ============================================================
+// CATEGORÍAS
+// ============================================================
+async function loadCategorias() {
+  const { data, error } = await sb.from('categorias').select('*').order('nombre');
+  if (error) return toast('Error categorías: ' + error.message, 'error');
+  state.categorias = data;
+  // Contar productos por categoría
+  const counts = {};
+  state.productos.forEach(p => { if (p.categoria_id) counts[p.categoria_id] = (counts[p.categoria_id]||0) + 1; });
+  document.getElementById('categoriasTbody').innerHTML = data.map(c => `
+    <tr>
+      <td>${esc(c.nombre)}</td>
+      <td>${esc(c.descripcion || '—')}</td>
+      <td>${counts[c.id] || 0}</td>
+      <td><span class="badge ${c.activo?'green':'gray'}">${c.activo?'Activa':'Inactiva'}</span></td>
+      <td class="actions">
+        <button class="btn small secondary" onclick="openCategoriaModal('${c.id}')">Editar</button>
+        <button class="btn small danger" onclick="deleteCategoria('${c.id}')">Eliminar</button>
+      </td>
+    </tr>`).join('') || '<tr><td colspan="5" class="empty">Sin categorías</td></tr>';
+}
+function openCategoriaModal(id=null) {
+  document.getElementById('modalCategoriaTitle').textContent = id ? 'Editar categoría' : 'Nueva categoría';
+  document.getElementById('categoriaId').value = id || '';
+  if (id) {
+    const c = state.categorias.find(x => x.id === id);
+    document.getElementById('categoriaNombre').value = c?.nombre || '';
+    document.getElementById('categoriaDescripcion').value = c?.descripcion || '';
+    document.getElementById('categoriaActivo').value = String(!!c?.activo);
+  } else {
+    document.getElementById('categoriaNombre').value = '';
+    document.getElementById('categoriaDescripcion').value = '';
+    document.getElementById('categoriaActivo').value = 'true';
+  }
+  openModal('modalCategoria');
+}
+async function saveCategoria() {
+  const id = document.getElementById('categoriaId').value;
+  const payload = {
+    nombre: document.getElementById('categoriaNombre').value.trim(),
+    descripcion: document.getElementById('categoriaDescripcion').value.trim() || null,
+    activo: document.getElementById('categoriaActivo').value === 'true',
+  };
+  if (!payload.nombre) return toast('El nombre es obligatorio', 'error');
+  let error;
+  if (id) ({ error } = await sb.from('categorias').update(payload).eq('id', id));
+  else ({ error } = await sb.from('categorias').insert(payload));
+  if (error) return toast(error.message, 'error');
+  toast(id ? 'Categoría actualizada' : 'Categoría creada');
+  closeModal('modalCategoria');
+  await loadCategorias();
+  fillSelectsCategorias();
+}
+async function deleteCategoria(id) {
+  if (!confirm('¿Eliminar esta categoría? Los productos asociados quedarán sin categoría.')) return;
+  const { error } = await sb.from('categorias').delete().eq('id', id);
+  if (error) return toast(error.message, 'error');
+  toast('Categoría eliminada');
+  await loadCategorias();
+  await loadProductos();
+}
+
+// ============================================================
 // PRODUCTOS
 // ============================================================
 async function loadProductos() {
-  const { data, error } = await sb.from('productos').select('*').order('categoria').order('nombre');
+  const { data, error } = await sb.from('productos')
+    .select('*, categorias(nombre)')
+    .order('nombre');
   if (error) return toast('Error productos: ' + error.message, 'error');
   state.productos = data;
   document.getElementById('productosTbody').innerHTML = data.map(p => `
     <tr>
       <td>${esc(p.nombre)}</td>
-      <td>${esc(p.categoria)}</td>
-      <td>${fmtMoney(p.precio_base)}</td>
+      <td>${esc(p.categorias?.nombre || p.categoria || '—')}</td>
+      <td>${fmtMoney(p.precio_base, p.moneda || 'PEN')}</td>
+      <td>${esc(p.moneda || 'PEN')}</td>
       <td>${esc(p.tipo_licencia)}</td>
       <td>${p.es_antivirus ? 'Sí' : 'No'}</td>
       <td><span class="badge ${p.activo?'green':'gray'}">${p.activo?'Activo':'Inactivo'}</span></td>
       <td class="actions">
         <button class="btn small secondary" onclick="openProductoModal('${p.id}')">Editar</button>
       </td>
-    </tr>`).join('') || '<tr><td colspan="7" class="empty">Sin productos</td></tr>';
+    </tr>`).join('') || '<tr><td colspan="8" class="empty">Sin productos</td></tr>';
+}
+function fillSelectsCategorias() {
+  const cats = state.categorias.filter(c => c.activo);
+  setOptions(document.getElementById('productoCategoriaId'), cats, 'id', c => c.nombre, '— Selecciona categoría —');
+  // En licencias también
+  setOptions(document.getElementById('nuevaLicProducto'), state.productos, 'id', p => p.nombre, '— Sin producto —');
+  setOptions(document.getElementById('editLicProducto'), state.productos, 'id', p => p.nombre, '— Sin producto —');
+}
+function fillSelectsProductos() {
+  setOptions(document.getElementById('ventaProducto'), state.productos.filter(p => p.activo), 'id', p => p.nombre, '— Selecciona producto —');
 }
 function openProductoModal(id=null) {
   document.getElementById('modalProductoTitle').textContent = id ? 'Editar producto' : 'Nuevo producto';
   document.getElementById('productoId').value = id || '';
+  fillSelectsCategorias();
   if (id) {
     const p = state.productos.find(x => x.id === id);
     document.getElementById('productoNombre').value = p?.nombre || '';
-    document.getElementById('productoCategoria').value = p?.categoria || 'Otros';
+    document.getElementById('productoCategoriaId').value = p?.categoria_id || '';
     document.getElementById('productoPrecio').value = p?.precio_base ?? 0;
+    document.getElementById('productoMoneda').value = p?.moneda || 'PEN';
     document.getElementById('productoTipo').value = p?.tipo_licencia || 'Perpetua';
     document.getElementById('productoEsAntivirus').value = String(!!p?.es_antivirus);
     document.getElementById('productoActivo').value = String(!!p?.activo);
   } else {
     document.getElementById('productoNombre').value = '';
-    document.getElementById('productoCategoria').value = 'Otros';
+    document.getElementById('productoCategoriaId').value = '';
     document.getElementById('productoPrecio').value = 0;
+    document.getElementById('productoMoneda').value = 'PEN';
     document.getElementById('productoTipo').value = 'Perpetua';
     document.getElementById('productoEsAntivirus').value = 'false';
     document.getElementById('productoActivo').value = 'true';
@@ -662,8 +830,9 @@ async function saveProducto() {
   const id = document.getElementById('productoId').value;
   const payload = {
     nombre: document.getElementById('productoNombre').value.trim(),
-    categoria: document.getElementById('productoCategoria').value,
+    categoria_id: document.getElementById('productoCategoriaId').value || null,
     precio_base: Number(document.getElementById('productoPrecio').value) || 0,
+    moneda: document.getElementById('productoMoneda').value,
     tipo_licencia: document.getElementById('productoTipo').value,
     es_antivirus: document.getElementById('productoEsAntivirus').value === 'true',
     activo: document.getElementById('productoActivo').value === 'true',
@@ -676,6 +845,8 @@ async function saveProducto() {
   toast(id ? 'Producto actualizado' : 'Producto creado');
   closeModal('modalProducto');
   await loadProductos();
+  fillSelectsCategorias();
+  fillSelectsProductos();
 }
 
 // ============================================================
@@ -689,7 +860,6 @@ async function loadVentas() {
   state.ventas = data;
   renderVentas();
 }
-
 function renderVentas() {
   const fCliente = document.getElementById('filtroCliente').value;
   const fTipo = document.getElementById('filtroTipo').value;
@@ -714,7 +884,7 @@ function renderVentas() {
       <td>${fmtDate(v.fecha_venta)}</td>
       <td>${esc(v.clientes?.nombre || '—')}</td>
       <td>${esc(v.productos?.nombre || '—')}</td>
-      <td>${fmtMoney(v.precio_venta)}</td>
+      <td>${fmtMoney(v.precio_venta, v.moneda || 'PEN')}</td>
       <td>${esc(v.tipo_licencia)}</td>
       <td>${caducaBadge}</td>
       <td>${v.es_prueba ? '<span class="badge blue">Sí</span>' : '—'}</td>
@@ -733,13 +903,14 @@ function openVentaModal(id=null) {
   document.getElementById('modalVentaTitle').textContent = id ? 'Editar venta' : 'Nueva venta';
   document.getElementById('ventaId').value = id || '';
   setOptions(document.getElementById('ventaCliente'), state.clientes, 'id', c => c.nombre, '— Selecciona cliente —');
-  setOptions(document.getElementById('ventaProducto'), state.productos.filter(p => p.activo), 'id', p => `${p.nombre} (${p.categoria})`, '— Selecciona producto —');
+  setOptions(document.getElementById('ventaProducto'), state.productos.filter(p => p.activo), 'id', p => p.nombre, '— Selecciona producto —');
 
   if (id) {
     const v = state.ventas.find(x => x.id === id);
     document.getElementById('ventaCliente').value = v?.cliente_id || '';
     document.getElementById('ventaProducto').value = v?.producto_id || '';
     document.getElementById('ventaPrecio').value = v?.precio_venta ?? 0;
+    document.getElementById('ventaMoneda').value = v?.moneda || 'PEN';
     document.getElementById('ventaTipo').value = v?.tipo_licencia || 'Perpetua';
     document.getElementById('ventaSO').value = v?.sistema_operativo || '';
     document.getElementById('ventaVersion').value = v?.version || '';
@@ -754,6 +925,7 @@ function openVentaModal(id=null) {
     document.getElementById('ventaCliente').value = '';
     document.getElementById('ventaProducto').value = '';
     document.getElementById('ventaPrecio').value = 0;
+    document.getElementById('ventaMoneda').value = 'PEN';
     document.getElementById('ventaTipo').value = 'Perpetua';
     document.getElementById('ventaSO').value = '';
     document.getElementById('ventaVersion').value = '';
@@ -765,7 +937,7 @@ function openVentaModal(id=null) {
     document.getElementById('ventaAnotaciones').value = '';
     document.getElementById('ventaEsPrueba').checked = false;
   }
-  togglePruebaBox();
+  toggleLicenciaBox();
   openModal('modalVenta');
 }
 
@@ -774,16 +946,20 @@ function onProductoChange() {
   const p = state.productos.find(x => x.id === pid);
   if (p) {
     document.getElementById('ventaPrecio').value = p.precio_base;
+    document.getElementById('ventaMoneda').value = p.moneda || 'PEN';
     document.getElementById('ventaTipo').value = p.tipo_licencia;
   }
 }
 
-function togglePruebaBox() {
+function toggleLicenciaBox() {
   const checked = document.getElementById('ventaEsPrueba').checked;
-  document.getElementById('ventaPruebaBox').style.display = checked ? 'block' : 'none';
+  document.getElementById('ventaLicenciaBox').style.display = checked ? 'block' : 'none';
   if (checked) {
     const disp = state.licencias.filter(l => l.estado === 'Disponible');
-    setOptions(document.getElementById('ventaPruebaClave'), disp, 'id', l => l.clave, '— Selecciona clave disponible —');
+    setOptions(document.getElementById('ventaLicencia'), disp, 'id', l => {
+      const tipo = l.es_prueba ? 'Prueba' : l.es_pago ? 'Pago' : 'Gratuita';
+      return `${tipo} · ${l.clave || l.correo || l.link_descarga || '—'}`;
+    }, '— Selecciona licencia disponible —');
   }
 }
 
@@ -793,6 +969,7 @@ async function saveVenta() {
     cliente_id: document.getElementById('ventaCliente').value,
     producto_id: document.getElementById('ventaProducto').value,
     precio_venta: Number(document.getElementById('ventaPrecio').value) || 0,
+    moneda: document.getElementById('ventaMoneda').value,
     tipo_licencia: document.getElementById('ventaTipo').value,
     sistema_operativo: document.getElementById('ventaSO').value.trim() || null,
     version: document.getElementById('ventaVersion').value.trim() || null,
@@ -817,17 +994,16 @@ async function saveVenta() {
   }
   if (error) return toast(error.message, 'error');
 
-  // Si es prueba y se seleccionó clave, asignarla
-  if (payload.es_prueba) {
-    const licId = document.getElementById('ventaPruebaClave').value;
-    if (licId && ventaId) {
-      await sb.from('licencias_prueba').update({
-        estado: 'En uso',
-        cliente_id: payload.cliente_id,
-        venta_id: ventaId,
-        fecha_asignacion: new Date().toISOString(),
-      }).eq('id', licId);
-    }
+  // Asignar licencia del pool si se seleccionó
+  const licId = document.getElementById('ventaLicencia').value;
+  if (licId && ventaId) {
+    const { error: e2 } = await sb.rpc('asignar_licencia', {
+      p_licencia_id: licId,
+      p_cliente_id: payload.cliente_id,
+      p_venta_id: ventaId,
+      p_producto_id: payload.producto_id
+    });
+    if (e2) toast('Venta guardada, pero licencia no asignada: ' + e2.message, 'error');
   }
 
   toast(id ? 'Venta actualizada' : 'Venta registrada');
@@ -838,7 +1014,7 @@ async function saveVenta() {
 }
 
 // ============================================================
-// DEVOLVER VENTA
+// DEVOLVER / ELIMINAR VENTA
 // ============================================================
 function openDevolucionModal(ventaId) {
   devolucionVentaId = ventaId;
@@ -847,7 +1023,7 @@ function openDevolucionModal(ventaId) {
   document.getElementById('devolucionMonto').value = v ? v.precio_venta : 0;
   document.getElementById('devolucionReutilizar').checked = false;
   document.getElementById('devolucionInfo').textContent = v
-    ? `Venta de ${v.productos?.nombre || 'producto'} a ${v.clientes?.nombre || 'cliente'} por ${fmtMoney(v.precio_venta)}`
+    ? `Venta de ${v.productos?.nombre || 'producto'} a ${v.clientes?.nombre || 'cliente'} por ${fmtMoney(v.precio_venta, v.moneda)}`
     : '';
   openModal('modalDevolucion');
 }
@@ -870,9 +1046,8 @@ async function confirmarDevolucion() {
   await loadLicencias();
   renderDashboard();
 }
-
 async function eliminarVenta(ventaId) {
-  if (!confirm('¿Eliminar esta venta de forma definitiva?\nSi tenía licencia de prueba, volverá a estar Disponible.')) return;
+  if (!confirm('¿Eliminar esta venta de forma definitiva?\nSi tenía licencia vinculada, volverá a estar Disponible.')) return;
   const { error } = await sb.rpc('eliminar_venta', { p_venta_id: ventaId });
   if (error) return toast('Error: ' + error.message, 'error');
   toast('Venta eliminada');
@@ -882,7 +1057,164 @@ async function eliminarVenta(ventaId) {
 }
 
 // ============================================================
-// BOLETA VIRTUAL + PDF
+// LICENCIAS
+// ============================================================
+async function loadLicencias() {
+  const { data, error } = await sb.from('licencias')
+    .select('*, clientes(nombre), productos(nombre)')
+    .order('fecha_creacion', { ascending: false });
+  if (error) return toast('Error licencias: ' + error.message, 'error');
+  state.licencias = data;
+  renderLicencias();
+}
+
+function setTabLic(t) {
+  tabLicActual = t;
+  document.querySelectorAll('#tabsLic .tab').forEach(b => b.classList.toggle('active', b.dataset.filtro === t));
+  renderLicencias();
+}
+
+function renderLicencias() {
+  const f = document.getElementById('filtroLicEstado').value;
+  let rows = state.licencias;
+  if (f) rows = rows.filter(l => l.estado === f);
+  if (tabLicActual === 'pago') rows = rows.filter(l => l.es_pago && !l.es_prueba);
+  if (tabLicActual === 'gratuita') rows = rows.filter(l => !l.es_pago && !l.es_prueba);
+  if (tabLicActual === 'prueba') rows = rows.filter(l => l.es_prueba);
+
+  document.getElementById('licenciasTbody').innerHTML = rows.map(l => {
+    const tipo = l.es_prueba ? '<span class="badge blue">Prueba</span>'
+      : l.es_pago ? '<span class="badge purple">Pago</span>'
+      : '<span class="badge gray">Gratuita</span>';
+    const estado = l.estado === 'Disponible' ? '<span class="badge green">Disponible</span>'
+      : l.estado === 'En uso' ? '<span class="badge orange">En uso</span>'
+      : l.estado === 'Vencida' ? '<span class="badge red">Vencida</span>'
+      : '<span class="badge gray">Usada</span>';
+    const cred = [
+      l.clave ? `<div style="font-family:monospace;font-size:12px">${esc(l.clave)}</div>` : '',
+      l.correo ? `<div style="font-size:11px;color:#64748b">✉ ${esc(l.correo)}</div>` : '',
+      l.link_descarga ? `<div style="font-size:11px;color:#64748b">🔗 link</div>` : ''
+    ].filter(Boolean).join('') || '—';
+    return `<tr>
+      <td>${cred}</td>
+      <td>${tipo}</td>
+      <td>${esc(l.productos?.nombre || '—')}</td>
+      <td>${estado}</td>
+      <td>${esc(l.clientes?.nombre || '—')}</td>
+      <td>${l.fecha_expiracion ? fmtDate(l.fecha_expiracion) : '—'}</td>
+      <td class="actions">
+        ${l.estado === 'Disponible' ? `<button class="btn small ghost" onclick="asignarLicencia('${l.id}')">Asignar</button>` : ''}
+        ${l.estado !== 'Disponible' ? `<button class="btn small secondary" onclick="liberarLicencia('${l.id}')">Liberar</button>` : ''}
+        <button class="btn small secondary" onclick="openLicenciaEdit('${l.id}')">Editar</button>
+        <button class="btn small danger" onclick="eliminarLicencia('${l.id}')">Eliminar</button>
+      </td>
+    </tr>`;
+  }).join('') || '<tr><td colspan="7" class="empty">Sin licencias</td></tr>';
+}
+
+async function agregarLicencia() {
+  const tipo = document.getElementById('nuevaLicTipo').value;
+  const clave = document.getElementById('nuevaLicClave').value.trim() || null;
+  const correo = document.getElementById('nuevaLicCorreo').value.trim() || null;
+  const password = document.getElementById('nuevaLicPass').value || null;
+  const link = document.getElementById('nuevaLicLink').value.trim() || null;
+  const prod = document.getElementById('nuevaLicProducto').value || null;
+  const exp = document.getElementById('nuevaLicExp').value || null;
+  const notas = document.getElementById('nuevaLicNotas').value.trim() || null;
+
+  if (!clave && !correo && !link) return toast('Debe haber al menos clave, correo o link', 'error');
+  if (clave && (clave.length < 20 || clave.length > 25)) return toast('La clave debe tener entre 20 y 25 caracteres', 'error');
+
+  const payload = {
+    es_pago: tipo === 'pago',
+    es_prueba: tipo === 'prueba',
+    clave, correo, password, link_descarga: link,
+    producto_id: prod,
+    estado: 'Disponible',
+    fecha_expiracion: exp,
+    notas,
+  };
+  const { error } = await sb.from('licencias').insert(payload);
+  if (error) return toast(error.message, 'error');
+  toast('Licencia agregada al pool');
+  document.getElementById('nuevaLicClave').value = '';
+  document.getElementById('nuevaLicCorreo').value = '';
+  document.getElementById('nuevaLicPass').value = '';
+  document.getElementById('nuevaLicLink').value = '';
+  document.getElementById('nuevaLicExp').value = '';
+  document.getElementById('nuevaLicNotas').value = '';
+  document.getElementById('licCont').textContent = '0 / 25';
+  await loadLicencias();
+  renderDashboard();
+}
+
+function asignarLicencia(licId) {
+  openVentaModal();
+  document.getElementById('ventaEsPrueba').checked = true;
+  toggleLicenciaBox();
+  setTimeout(() => { document.getElementById('ventaLicencia').value = licId; }, 50);
+}
+
+async function liberarLicencia(licId) {
+  if (!confirm('¿Liberar esta licencia? Volverá a Disponible y se desvinculará del cliente.')) return;
+  const { error } = await sb.rpc('liberar_licencia', { p_licencia_id: licId, p_reutilizar: true });
+  if (error) return toast(error.message, 'error');
+  toast('Licencia liberada');
+  await loadLicencias();
+  renderDashboard();
+}
+
+async function eliminarLicencia(licId) {
+  if (!confirm('¿Eliminar esta licencia del pool?')) return;
+  const { error } = await sb.from('licencias').delete().eq('id', licId);
+  if (error) return toast(error.message, 'error');
+  toast('Licencia eliminada');
+  await loadLicencias();
+  renderDashboard();
+}
+
+function openLicenciaEdit(licId) {
+  const l = state.licencias.find(x => x.id === licId);
+  if (!l) return;
+  document.getElementById('editLicId').value = l.id;
+  document.getElementById('editLicTipo').value = l.es_prueba ? 'prueba' : l.es_pago ? 'pago' : 'gratuita';
+  document.getElementById('editLicEstado').value = l.estado;
+  document.getElementById('editLicProducto').value = l.producto_id || '';
+  document.getElementById('editLicExp').value = l.fecha_expiracion || '';
+  document.getElementById('editLicClave').value = l.clave || '';
+  document.getElementById('editLicCorreo').value = l.correo || '';
+  document.getElementById('editLicPass').value = l.password || '';
+  document.getElementById('editLicLink').value = l.link_descarga || '';
+  document.getElementById('editLicNotas').value = l.notas || '';
+  openModal('modalLicenciaEdit');
+}
+async function saveLicenciaEdit() {
+  const id = document.getElementById('editLicId').value;
+  const tipo = document.getElementById('editLicTipo').value;
+  const clave = document.getElementById('editLicClave').value.trim() || null;
+  if (clave && (clave.length < 20 || clave.length > 25)) return toast('La clave debe tener entre 20 y 25 caracteres', 'error');
+  const payload = {
+    es_pago: tipo === 'pago',
+    es_prueba: tipo === 'prueba',
+    estado: document.getElementById('editLicEstado').value,
+    producto_id: document.getElementById('editLicProducto').value || null,
+    fecha_expiracion: document.getElementById('editLicExp').value || null,
+    clave,
+    correo: document.getElementById('editLicCorreo').value.trim() || null,
+    password: document.getElementById('editLicPass').value || null,
+    link_descarga: document.getElementById('editLicLink').value.trim() || null,
+    notas: document.getElementById('editLicNotas').value.trim() || null,
+  };
+  if (!payload.clave && !payload.correo && !payload.link_descarga) return toast('Debe haber al menos clave, correo o link', 'error');
+  const { error } = await sb.from('licencias').update(payload).eq('id', id);
+  if (error) return toast(error.message, 'error');
+  toast('Licencia actualizada');
+  closeModal('modalLicenciaEdit');
+  await loadLicencias();
+}
+
+// ============================================================
+// BOLETA
 // ============================================================
 function verBoleta(ventaId) {
   const v = state.ventas.find(x => x.id === ventaId);
@@ -910,10 +1242,12 @@ function verBoleta(ventaId) {
       <p>Fecha: ${fmtDate(v.fecha_venta)}</p>
     </div>
     ${lineas.join('')}
-    <div class="boleta-total"><span>TOTAL</span><span>${fmtMoney(v.precio_venta)}</span></div>
+    <div class="boleta-total"><span>TOTAL</span><span>${fmtMoney(v.precio_venta, v.moneda || 'PEN')}</span></div>
     <div class="boleta-foot">
       <p>Gracias por su compra</p>
       <p>Documento virtual — no válido como comprobante fiscal</p>
+      <div class="vendedor">Vendedor: ${esc(VENDEDOR.nombre)}</div>
+      <div class="vendedor">Celular: ${esc(VENDEDOR.celular)}</div>
     </div>
   `;
   openModal('modalBoleta');
@@ -935,83 +1269,6 @@ async function descargarBoletaPDF() {
   } catch (e) {
     toast('Error generando PDF: ' + e.message, 'error');
   }
-}
-
-// ============================================================
-// LICENCIAS DE PRUEBA
-// ============================================================
-async function loadLicencias() {
-  const { data, error } = await sb.from('licencias_prueba')
-    .select('*, clientes(nombre)')
-    .order('fecha_creacion', { ascending: false });
-  if (error) return toast('Error licencias: ' + error.message, 'error');
-  state.licencias = data;
-  renderLicencias();
-}
-function renderLicencias() {
-  const f = document.getElementById('filtroLicEstado').value;
-  let rows = state.licencias;
-  if (f) rows = rows.filter(l => l.estado === f);
-  document.getElementById('licenciasTbody').innerHTML = rows.map(l => {
-    const estadoBadge = l.estado === 'Disponible' ? '<span class="badge green">Disponible</span>'
-      : l.estado === 'En uso' ? '<span class="badge orange">En uso</span>'
-      : '<span class="badge gray">Usada</span>';
-    return `<tr>
-      <td style="font-family:monospace">${esc(l.clave)}</td>
-      <td>${estadoBadge}</td>
-      <td>${esc(l.clientes?.nombre || '—')}</td>
-      <td>${l.fecha_asignacion ? fmtDate(l.fecha_asignacion) : '—'}</td>
-      <td>${l.fecha_expiracion ? fmtDate(l.fecha_expiracion) : '—'}</td>
-      <td class="actions">
-        ${l.estado === 'Disponible' ? `<button class="btn small ghost" onclick="asignarLicencia('${l.id}')">Asignar</button>` : ''}
-        ${l.estado !== 'Disponible' ? `<button class="btn small secondary" onclick="liberarLicencia('${l.id}')">Liberar</button>` : ''}
-        <button class="btn small danger" onclick="eliminarLicencia('${l.id}')">Eliminar</button>
-      </td>
-    </tr>`;
-  }).join('') || '<tr><td colspan="6" class="empty">Sin licencias</td></tr>';
-}
-
-async function agregarLicencia() {
-  const clave = document.getElementById('nuevaClave').value.trim();
-  const exp = document.getElementById('nuevaClaveExp').value || null;
-  if (clave.length !== 25) return toast('La clave debe tener exactamente 25 caracteres', 'error');
-  const { error } = await sb.from('licencias_prueba').insert({
-    clave, estado: 'Disponible', fecha_expiracion: exp
-  });
-  if (error) return toast(error.message, 'error');
-  toast('Licencia agregada');
-  document.getElementById('nuevaClave').value = '';
-  document.getElementById('nuevaClaveExp').value = '';
-  document.getElementById('contadorClave').textContent = '0 / 25';
-  await loadLicencias();
-  renderDashboard();
-}
-
-function asignarLicencia(licId) {
-  openVentaModal();
-  document.getElementById('ventaEsPrueba').checked = true;
-  togglePruebaBox();
-  setTimeout(() => { document.getElementById('ventaPruebaClave').value = licId; }, 50);
-}
-
-async function liberarLicencia(licId) {
-  if (!confirm('¿Liberar esta licencia? Volverá a estado Disponible y se desvinculará del cliente.')) return;
-  const { error } = await sb.from('licencias_prueba').update({
-    estado: 'Disponible', cliente_id: null, venta_id: null, fecha_asignacion: null
-  }).eq('id', licId);
-  if (error) return toast(error.message, 'error');
-  toast('Licencia liberada');
-  await loadLicencias();
-  renderDashboard();
-}
-
-async function eliminarLicencia(licId) {
-  if (!confirm('¿Eliminar esta licencia del pool?')) return;
-  const { error } = await sb.from('licencias_prueba').delete().eq('id', licId);
-  if (error) return toast(error.message, 'error');
-  toast('Licencia eliminada');
-  await loadLicencias();
-  renderDashboard();
 }
 
 // ============================================================
