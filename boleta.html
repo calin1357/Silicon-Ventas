@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Boleta Digital - Silicon Ventas</title>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <style>
+        body { font-family: 'Courier New', monospace; background: #f1f5f9; padding: 20px; display: flex; justify-content: center; }
+        .boleta-container { background: #fff; padding: 30px; border-radius: 12px; max-width: 500px; width: 100%; box-shadow: 0 10px 30px rgba(0,0,0,.1); }
+        .boleta-head { text-align: center; border-bottom: 2px dashed #999; padding-bottom: 12px; margin-bottom: 12px; }
+        .boleta-head h2 { margin: 0; font-size: 18px; }
+        .boleta-head p { margin: 2px 0; font-size: 12px; color: #555; }
+        .boleta-num { font-size: 13px; font-weight: bold; margin-top: 6px; }
+        .boleta-row { display: flex; justify-content: space-between; font-size: 12px; padding: 4px 0; border-bottom: 1px dotted #ddd; }
+        .boleta-row .k { color: #555; }
+        .boleta-row .v { font-weight: bold; text-align: right; max-width: 60%; word-break: break-all; }
+        .boleta-total { display: flex; justify-content: space-between; font-size: 16px; font-weight: bold; margin-top: 14px; padding-top: 10px; border-top: 2px solid #111; }
+        .boleta-foot { text-align: center; font-size: 11px; color: #777; margin-top: 18px; border-top: 1px dashed #999; padding-top: 10px; }
+        .boleta-foot .vendedor { font-size: 12px; color: #111; font-weight: bold; margin-top: 6px; }
+        .error { text-align: center; color: #dc2626; font-size: 16px; margin-top: 50px; }
+    </style>
+</head>
+<body>
+
+<div id="boletaContainer" class="boleta-container">
+    <p style="text-align:center; color:#64748b;">Cargando boleta...</p>
+</div>
+
+<script>
+    const SUPABASE_URL = 'https://dbewulhcbhgfwlchirjg.supabase.co';
+    const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRiZXd1bGhjYmhnZndsY2hpcmpnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTIyNTg3MTEsImV4cCI6MjEwNzgzNDcxMX0.ia2nN9AST_wyq8JykP0xPBMoICXc0U33k72uAPBCy6U';
+    const sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+    async function cargarBoleta() {
+        const params = new URLSearchParams(window.location.search);
+        const ventaId = params.get('id');
+        const correlativo = params.get('corr') || 'N/A';
+
+        if (!ventaId) {
+            document.getElementById('boletaContainer').innerHTML = '<p class="error">No se especificó una boleta válida.</p>';
+            return;
+        }
+
+        const { data: v, error } = await sb
+            .from('ventas')
+            .select('*, clientes(nombre, dni), productos(nombre, version), licencias!ventas_licencia_id_fkey(clave, correo, link_descarga)')
+            .eq('id', ventaId)
+            .single();
+
+        if (error || !v) {
+            document.getElementById('boletaContainer').innerHTML = '<p class="error">Boleta no encontrada o el enlace ha expirado.</p>';
+            console.error(error);
+            return;
+        }
+
+        const fecha = new Date(v.fecha_venta).toLocaleDateString('es-PE', { year:'numeric', month:'short', day:'numeric' });
+        const fmtMoney = (n) => 'S/ ' + Number(n || 0).toFixed(2);
+
+        const lineas = [];
+        if (v.clientes?.dni) lineas.push(`<div class="boleta-row"><span class="k">DNI:</span><span class="v">${v.clientes.dni}</span></div>`);
+        lineas.push(`<div class="boleta-row"><span class="k">Cliente:</span><span class="v">${v.clientes?.nombre || '—'}</span></div>`);
+        lineas.push(`<div class="boleta-row"><span class="k">Producto:</span><span class="v">${v.productos?.nombre || '—'}</span></div>`);
+        lineas.push(`<div class="boleta-row"><span class="k">Versión:</span><span class="v">${v.version || v.productos?.version || '—'}</span></div>`);
+        
+        const tipoLabel = v.incluye_servicio ? 'Licencia e Instalación' : v.tipo_licencia;
+        lineas.push(`<div class="boleta-row"><span class="k">Tipo:</span><span class="v">${tipoLabel}</span></div>`);
+
+        if (v.licencias) {
+            if (v.licencias.clave) lineas.push(`<div class="boleta-row"><span class="k">Licencia:</span><span class="v">${v.licencias.clave}</span></div>`);
+            if (v.licencias.correo) lineas.push(`<div class="boleta-row"><span class="k">Correo Lic.:</span><span class="v">${v.licencias.correo}</span></div>`);
+        }
+        if (v.fecha_caducidad) lineas.push(`<div class="boleta-row"><span class="k">Caduca:</span><span class="v">${new Date(v.fecha_caducidad).toLocaleDateString('es-PE')}</span></div>`);
+        if (v.descripcion) lineas.push(`<div class="boleta-row"><span class="k">Descripción:</span><span class="v">${v.descripcion}</span></div>`);
+
+        document.getElementById('boletaContainer').innerHTML = `
+            <div class="boleta-head">
+                <h2>🛡️ Silicon Ventas</h2>
+                <p>Servicios informáticos y licencias de software</p>
+                <p class="boleta-num">Boleta N° ${correlativo}</p>
+                <p>Fecha: ${fecha}</p>
+            </div>
+            ${lineas.join('')}
+            <div class="boleta-total"><span>TOTAL</span><span>${fmtMoney(v.precio_venta)}</span></div>
+            <div class="boleta-foot">
+                <p>Gracias por su compra</p>
+                <p>Vendedor: Juan Carlos Condor Irigoin - Celular: 988932324</p>
+            </div>
+        `;
+    }
+
+    cargarBoleta();
+</script>
+</body>
+</html>
