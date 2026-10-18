@@ -233,7 +233,7 @@
           <button class="btn" onclick="openProductoModal()">+ Nuevo producto</button>
         </div>
         <div class="table-wrap"><table>
-          <thead><tr><th>Nombre</th><th>Categoría</th><th>Precio</th><th>Moneda</th><th>Tipo</th><th>Stock</th><th>Estado</th><th>Acciones</th></tr></thead>
+          <thead><tr><th>Nombre</th><th>Versión</th><th>Categoría</th><th>Precio</th><th>Moneda</th><th>Tipo</th><th>Stock</th><th>Estado</th><th>Acciones</th></tr></thead>
           <tbody id="productosTbody"></tbody>
         </table></div>
       </div>
@@ -261,7 +261,7 @@
         </div>
         <div class="table-wrap"><table>
           <thead><tr>
-            <th>Fecha</th><th>Cliente</th><th>Producto</th><th>Precio</th>
+            <th>Fecha</th><th>Cliente</th><th>Producto</th><th>Versión</th><th>Precio</th>
             <th>Tipo</th><th>Caduca</th><th>Licencia</th><th>Estado</th><th>Acciones</th>
           </tr></thead>
           <tbody id="ventasTbody"></tbody>
@@ -382,7 +382,8 @@
     <div class="modal-body">
       <input type="hidden" id="productoId" />
       <div class="form-grid">
-        <div class="full"><label>Nombre <span class="req">*</span></label><input id="productoNombre" /></div>
+        <div><label>Nombre <span class="req">*</span></label><input id="productoNombre" /></div>
+        <div><label>Versión <span class="req">*</span></label><input id="productoVersion" placeholder="Ej. 10, 11, 2024" /></div>
         <div><label>Categoría <span class="req">*</span></label><select id="productoCategoriaId"></select></div>
         <div><label>Precio base</label><input id="productoPrecio" type="number" step="0.01" value="0" /></div>
         <div><label>Moneda</label>
@@ -410,7 +411,12 @@
       <input type="hidden" id="ventaId" />
       <div class="form-grid">
         <div><label>Cliente <span class="req">*</span></label><select id="ventaCliente"></select></div>
-        <div><label>Producto <span class="req">*</span></label><select id="ventaProducto" onchange="onProductoChange()"></select></div>
+        <div class="full">
+          <label>Producto <span class="req">*</span></label>
+          <input id="buscarProducto" placeholder="🔍 Buscar producto por nombre..." oninput="filtrarProductosVenta()" style="margin-bottom:6px" />
+          <select id="ventaProducto" onchange="onProductoChange()"></select>
+          <div class="hint">Escribe para filtrar. Se muestran todas las versiones disponibles.</div>
+        </div>
         <div class="full">
           <div id="ventaStockBox" class="stock-box">Selecciona un producto para ver el stock.</div>
         </div>
@@ -426,13 +432,12 @@
           <select id="ventaMoneda"><option value="PEN">PEN</option><option value="USD">USD</option><option value="EUR">EUR</option></select>
         </div>
         <div><label>Tipo de licencia</label>
-          <select id="ventaTipo"><option>Perpetua</option><option>Suscripción</option></select>
+          <select id="ventaTipo" onchange="onTipoLicenciaChange()"><option>Perpetua</option><option>Suscripción</option></select>
         </div>
         <div><label>Sistema operativo</label><input id="ventaSO" placeholder="Windows 11, macOS, etc." /></div>
-        <div><label>Versión</label><input id="ventaVersion" /></div>
         <div class="full"><label>Descripción</label><input id="ventaDescripcion" /></div>
         <div class="full"><label>Datos de licencia (clave/serial)</label><input id="ventaDatosLicencia" style="font-family:monospace" /></div>
-        <div><label>Fecha de caducidad</label><input id="ventaCaducidad" type="date" /></div>
+        <div><label>Fecha de caducidad <span id="reqCaducidad" class="req" style="display:none">*</span></label><input id="ventaCaducidad" type="date" /></div>
         <div><label>Correo de suscripción</label><input id="ventaCorreoSuscripcion" type="email" /></div>
         <div class="full"><label>Anotaciones</label><textarea id="ventaAnotaciones"></textarea></div>
       </div>
@@ -581,6 +586,9 @@ function categoriaNombreDe(productoId) {
 function stockProducto(productoId) {
   return state.licencias.filter(l => l.estado === 'Disponible' && l.producto_id === productoId).length;
 }
+function labelProducto(p) {
+  return `${p.nombre} v${p.version}`;
+}
 
 // ============================================================
 // AUTH
@@ -663,7 +671,7 @@ function renderDashboard() {
     const d = daysUntil(v.fecha_caducidad);
     return `<tr>
       <td>${esc(v.clientes?.nombre || '—')}</td>
-      <td>${esc(v.productos?.nombre || '—')}</td>
+      <td>${esc(v.productos?.nombre || '—')} ${v.version ? 'v' + esc(v.version) : ''}</td>
       <td>${fmtDate(v.fecha_caducidad)}</td>
       <td><span class="badge ${d <= 7 ? 'red' : 'orange'}">${d} días</span></td>
     </tr>`;
@@ -801,7 +809,7 @@ async function deleteCategoria(id) {
 async function loadProductos() {
   const { data, error } = await sb.from('productos')
     .select('*, categorias(nombre)')
-    .order('nombre');
+    .order('nombre').order('version');
   if (error) return toast('Error productos: ' + error.message, 'error');
   state.productos = data;
   document.getElementById('productosTbody').innerHTML = data.map(p => {
@@ -811,6 +819,7 @@ async function loadProductos() {
       : `<span class="badge red">0</span>`;
     return `<tr>
       <td>${esc(p.nombre)}</td>
+      <td>${esc(p.version)}</td>
       <td>${esc(p.categorias?.nombre || '—')}</td>
       <td>${fmtMoney(p.precio_base, p.moneda || 'PEN')}</td>
       <td>${esc(p.moneda || 'PEN')}</td>
@@ -821,16 +830,24 @@ async function loadProductos() {
         <button class="btn small secondary" onclick="openProductoModal('${p.id}')">Editar</button>
       </td>
     </tr>`;
-  }).join('') || '<tr><td colspan="8" class="empty">Sin productos</td></tr>';
+  }).join('') || '<tr><td colspan="9" class="empty">Sin productos</td></tr>';
 }
 function fillSelectsCategorias() {
   const cats = state.categorias.filter(c => c.activo);
   setOptions(document.getElementById('productoCategoriaId'), cats, 'id', c => c.nombre, '— Selecciona categoría —');
-  setOptions(document.getElementById('editLicProducto'), state.productos.filter(p => p.activo), 'id', p => p.nombre, '— Selecciona producto —');
-  setOptions(document.getElementById('nuevaLicProducto'), state.productos.filter(p => p.activo), 'id', p => p.nombre, '— Selecciona producto —');
+  setOptions(document.getElementById('editLicProducto'), state.productos.filter(p => p.activo), 'id', labelProducto, '— Selecciona producto —');
+  setOptions(document.getElementById('nuevaLicProducto'), state.productos.filter(p => p.activo), 'id', labelProducto, '— Selecciona producto —');
 }
 function fillSelectsProductos() {
-  setOptions(document.getElementById('ventaProducto'), state.productos.filter(p => p.activo), 'id', p => p.nombre, '— Selecciona producto —');
+  setOptions(document.getElementById('ventaProducto'), state.productos.filter(p => p.activo), 'id', labelProducto, '— Selecciona producto —');
+}
+function filtrarProductosVenta() {
+  const q = document.getElementById('buscarProducto').value.trim().toLowerCase();
+  const filtrados = state.productos
+    .filter(p => p.activo)
+    .filter(p => !q || p.nombre.toLowerCase().includes(q) || String(p.version).toLowerCase().includes(q));
+  setOptions(document.getElementById('ventaProducto'), filtrados, 'id', labelProducto, '— Selecciona producto —');
+  actualizarStockVenta();
 }
 function openProductoModal(id=null) {
   document.getElementById('modalProductoTitle').textContent = id ? 'Editar producto' : 'Nuevo producto';
@@ -839,6 +856,7 @@ function openProductoModal(id=null) {
   if (id) {
     const p = state.productos.find(x => x.id === id);
     document.getElementById('productoNombre').value = p?.nombre || '';
+    document.getElementById('productoVersion').value = p?.version || '1.0';
     document.getElementById('productoCategoriaId').value = p?.categoria_id || '';
     document.getElementById('productoPrecio').value = p?.precio_base ?? 0;
     document.getElementById('productoMoneda').value = p?.moneda || 'PEN';
@@ -846,6 +864,7 @@ function openProductoModal(id=null) {
     document.getElementById('productoActivo').value = String(!!p?.activo);
   } else {
     document.getElementById('productoNombre').value = '';
+    document.getElementById('productoVersion').value = '1.0';
     document.getElementById('productoCategoriaId').value = '';
     document.getElementById('productoPrecio').value = 0;
     document.getElementById('productoMoneda').value = 'PEN';
@@ -858,6 +877,7 @@ async function saveProducto() {
   const id = document.getElementById('productoId').value;
   const payload = {
     nombre: document.getElementById('productoNombre').value.trim(),
+    version: document.getElementById('productoVersion').value.trim() || '1.0',
     categoria_id: document.getElementById('productoCategoriaId').value || null,
     precio_base: Number(document.getElementById('productoPrecio').value) || 0,
     moneda: document.getElementById('productoMoneda').value,
@@ -865,6 +885,7 @@ async function saveProducto() {
     activo: document.getElementById('productoActivo').value === 'true',
   };
   if (!payload.nombre) return toast('El nombre es obligatorio', 'error');
+  if (!payload.version) return toast('La versión es obligatoria', 'error');
   if (!payload.categoria_id) return toast('La categoría es obligatoria', 'error');
   let error;
   if (id) ({ error } = await sb.from('productos').update(payload).eq('id', id));
@@ -882,7 +903,7 @@ async function saveProducto() {
 // ============================================================
 async function loadVentas() {
   const { data, error } = await sb.from('ventas')
-    .select('*, clientes(nombre), productos(nombre), licencias(clave, correo, link_descarga, tipo)')
+    .select('*, clientes(nombre), productos(nombre, version), licencias(clave, correo, link_descarga, tipo)')
     .order('fecha_venta', { ascending: false });
   if (error) return toast('Error ventas: ' + error.message, 'error');
   state.ventas = data;
@@ -913,6 +934,7 @@ function renderVentas() {
       <td>${fmtDate(v.fecha_venta)}</td>
       <td>${esc(v.clientes?.nombre || '—')}</td>
       <td>${esc(v.productos?.nombre || '—')}</td>
+      <td>${esc(v.version || v.productos?.version || '—')}</td>
       <td>${fmtMoney(v.precio_venta, v.moneda || 'PEN')}</td>
       <td>${esc(v.tipo_licencia)}</td>
       <td>${caducaBadge}</td>
@@ -924,14 +946,15 @@ function renderVentas() {
         <button class="btn small danger" onclick="eliminarVenta('${v.id}')">Eliminar</button>
       </td>
     </tr>`;
-  }).join('') || '<tr><td colspan="9" class="empty">Sin ventas registradas</td></tr>';
+  }).join('') || '<tr><td colspan="10" class="empty">Sin ventas registradas</td></tr>';
 }
 
 function openVentaModal(id=null) {
   document.getElementById('modalVentaTitle').textContent = id ? 'Editar venta' : 'Nueva venta';
   document.getElementById('ventaId').value = id || '';
+  document.getElementById('buscarProducto').value = '';
   setOptions(document.getElementById('ventaCliente'), state.clientes, 'id', c => c.nombre, '— Selecciona cliente —');
-  setOptions(document.getElementById('ventaProducto'), state.productos.filter(p => p.activo), 'id', p => p.nombre, '— Selecciona producto —');
+  fillSelectsProductos();
 
   if (id) {
     const v = state.ventas.find(x => x.id === id);
@@ -941,7 +964,6 @@ function openVentaModal(id=null) {
     document.getElementById('ventaMoneda').value = v?.moneda || 'PEN';
     document.getElementById('ventaTipo').value = v?.tipo_licencia || 'Perpetua';
     document.getElementById('ventaSO').value = v?.sistema_operativo || '';
-    document.getElementById('ventaVersion').value = v?.version || '';
     document.getElementById('ventaDescripcion').value = v?.descripcion || '';
     document.getElementById('ventaDatosLicencia').value = v?.datos_licencia || '';
     document.getElementById('ventaCaducidad').value = v?.fecha_caducidad || '';
@@ -954,13 +976,13 @@ function openVentaModal(id=null) {
     document.getElementById('ventaMoneda').value = 'PEN';
     document.getElementById('ventaTipo').value = 'Perpetua';
     document.getElementById('ventaSO').value = '';
-    document.getElementById('ventaVersion').value = '';
     document.getElementById('ventaDescripcion').value = '';
     document.getElementById('ventaDatosLicencia').value = '';
     document.getElementById('ventaCaducidad').value = '';
     document.getElementById('ventaCorreoSuscripcion').value = '';
     document.getElementById('ventaAnotaciones').value = '';
   }
+  onTipoLicenciaChange();
   actualizarStockVenta();
   openModal('modalVenta');
 }
@@ -972,8 +994,23 @@ function onProductoChange() {
     document.getElementById('ventaPrecio').value = p.precio_base;
     document.getElementById('ventaMoneda').value = p.moneda || 'PEN';
     document.getElementById('ventaTipo').value = p.tipo_licencia;
+    onTipoLicenciaChange();
   }
   actualizarStockVenta();
+}
+
+function onTipoLicenciaChange() {
+  const tipo = document.getElementById('ventaTipo').value;
+  const cad = document.getElementById('ventaCaducidad');
+  const req = document.getElementById('reqCaducidad');
+  if (tipo === 'Perpetua') {
+    cad.value = '';
+    cad.disabled = true;
+    req.style.display = 'none';
+  } else {
+    cad.disabled = false;
+    req.style.display = 'inline';
+  }
 }
 
 function actualizarStockVenta() {
@@ -993,7 +1030,7 @@ function actualizarStockVenta() {
   const disp = state.licencias.filter(l => l.estado === 'Disponible' && l.producto_id === pid);
   if (disp.length === 0) {
     box.className = 'stock-box danger';
-    box.textContent = '⚠ Sin stock de licencias para este producto. Agrega una licencia en el módulo "Licencias" antes de vender.';
+    box.textContent = '⚠ No hay licencias en stock para este producto. Agrega una licencia en el módulo "Licencias" antes de vender.';
     setOptions(selLic, [], 'id', () => '', 'Sin licencias disponibles');
     btn.disabled = true;
   } else {
@@ -1010,29 +1047,30 @@ function actualizarStockVenta() {
 async function saveVenta() {
   const id = document.getElementById('ventaId').value;
   const licId = document.getElementById('ventaLicencia').value || null;
+  const tipo = document.getElementById('ventaTipo').value;
+  const caducidad = document.getElementById('ventaCaducidad').value || null;
+  if (tipo === 'Suscripción' && !caducidad) return toast('La fecha de caducidad es obligatoria para suscripciones', 'error');
+
   const payload = {
     cliente_id: document.getElementById('ventaCliente').value,
     producto_id: document.getElementById('ventaProducto').value,
     precio_venta: Number(document.getElementById('ventaPrecio').value) || 0,
     moneda: document.getElementById('ventaMoneda').value,
-    tipo_licencia: document.getElementById('ventaTipo').value,
+    tipo_licencia: tipo,
     sistema_operativo: document.getElementById('ventaSO').value.trim() || null,
-    version: document.getElementById('ventaVersion').value.trim() || null,
     descripcion: document.getElementById('ventaDescripcion').value.trim() || null,
     datos_licencia: document.getElementById('ventaDatosLicencia').value.trim() || null,
-    fecha_caducidad: document.getElementById('ventaCaducidad').value || null,
+    fecha_caducidad: tipo === 'Perpetua' ? null : caducidad,
     correo_suscripcion: document.getElementById('ventaCorreoSuscripcion').value.trim() || null,
     anotaciones: document.getElementById('ventaAnotaciones').value.trim() || null,
   };
   if (!payload.cliente_id || !payload.producto_id) return toast('Cliente y producto son obligatorios', 'error');
 
   if (id) {
-    // Edición: no se vuelve a descontar stock; solo se actualizan datos.
     const { error } = await sb.from('ventas').update(payload).eq('id', id);
     if (error) return toast(error.message, 'error');
     toast('Venta actualizada');
   } else {
-    // Creación: usar RPC para permitir licencia específica o automática
     const { data, error } = await sb.rpc('vender_con_licencia', {
       p_cliente_id: payload.cliente_id,
       p_producto_id: payload.producto_id,
@@ -1040,7 +1078,6 @@ async function saveVenta() {
       p_moneda: payload.moneda,
       p_tipo_licencia: payload.tipo_licencia,
       p_sistema_operativo: payload.sistema_operativo,
-      p_version: payload.version,
       p_descripcion: payload.descripcion,
       p_datos_licencia: payload.datos_licencia,
       p_fecha_caducidad: payload.fecha_caducidad,
@@ -1049,9 +1086,9 @@ async function saveVenta() {
       p_licencia_id: licId
     });
     if (error) return toast('No se pudo registrar la venta: ' + error.message, 'error');
+    toast('Venta registrada');
   }
 
-  toast('Venta registrada');
   closeModal('modalVenta');
   await loadVentas();
   await loadLicencias();
@@ -1069,7 +1106,7 @@ function openDevolucionModal(ventaId) {
   document.getElementById('devolucionMonto').value = v ? v.precio_venta : 0;
   document.getElementById('devolucionReutilizar').checked = false;
   document.getElementById('devolucionInfo').textContent = v
-    ? `Venta de ${v.productos?.nombre || 'producto'} a ${v.clientes?.nombre || 'cliente'} por ${fmtMoney(v.precio_venta, v.moneda)}`
+    ? `Venta de ${v.productos?.nombre || 'producto'} ${v.version ? 'v'+v.version : ''} a ${v.clientes?.nombre || 'cliente'} por ${fmtMoney(v.precio_venta, v.moneda)}`
     : '';
   openModal('modalDevolucion');
 }
@@ -1109,7 +1146,7 @@ async function eliminarVenta(ventaId) {
 // ============================================================
 async function loadLicencias() {
   const { data, error } = await sb.from('licencias')
-    .select('*, clientes(nombre), productos(nombre)')
+    .select('*, clientes(nombre), productos(nombre, version)')
     .order('fecha_creacion', { ascending: false });
   if (error) return toast('Error licencias: ' + error.message, 'error');
   state.licencias = data;
@@ -1143,10 +1180,11 @@ function renderLicencias() {
       l.correo ? `<div style="font-size:11px;color:#64748b">✉ ${esc(l.correo)}</div>` : '',
       l.link_descarga ? `<div style="font-size:11px;color:#64748b">🔗 link</div>` : ''
     ].filter(Boolean).join('') || '—';
+    const prodLabel = l.productos ? `${esc(l.productos.nombre)} v${esc(l.productos.version || '')}` : '—';
     return `<tr>
       <td>${cred}</td>
       <td>${tipo}</td>
-      <td>${esc(l.productos?.nombre || '—')}</td>
+      <td>${prodLabel}</td>
       <td>${estado}</td>
       <td>${esc(l.clientes?.nombre || '—')}</td>
       <td>${l.fecha_expiracion ? fmtDate(l.fecha_expiracion) : '—'}</td>
@@ -1312,10 +1350,9 @@ function verBoleta(ventaId) {
 
   const lineas = [];
   lineas.push(`<div class="boleta-row"><span class="k">Cliente:</span><span class="v">${esc(v.clientes?.nombre || '—')}</span></div>`);
-  lineas.push(`<div class="boleta-row"><span class="k">Producto:</span><span class="v">${esc(v.productos?.nombre || '—')}</span></div>`);
+  lineas.push(`<div class="boleta-row"><span class="k">Producto:</span><span class="v">${esc(v.productos?.nombre || '—')} ${v.version ? 'v'+esc(v.version) : ''}</span></div>`);
   lineas.push(`<div class="boleta-row"><span class="k">Tipo:</span><span class="v">${esc(v.tipo_licencia)}${v.es_prueba ? ' (PRUEBA)' : ''}</span></div>`);
   if (v.sistema_operativo) lineas.push(`<div class="boleta-row"><span class="k">Sistema:</span><span class="v">${esc(v.sistema_operativo)}</span></div>`);
-  if (v.version) lineas.push(`<div class="boleta-row"><span class="k">Versión:</span><span class="v">${esc(v.version)}</span></div>`);
   if (v.datos_licencia) lineas.push(`<div class="boleta-row"><span class="k">Licencia:</span><span class="v">${esc(v.datos_licencia)}</span></div>`);
   if (v.licencias) {
     if (v.licencias.clave) lineas.push(`<div class="boleta-row"><span class="k">Clave:</span><span class="v">${esc(v.licencias.clave)}</span></div>`);
