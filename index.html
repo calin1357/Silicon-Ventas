@@ -610,12 +610,14 @@ const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZ
 const sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
 const VENDEDOR = { nombre: 'Juan Carlos Condor Irigoin', celular: '988932324' };
+const INACTIVIDAD_MS = 60000; // 1 minuto de inactividad para cerrar sesión
 
 let state = { clientes: [], categorias: [], productos: [], ventas: [], licencias: [] };
 let devolucionVentaId = null;
 let boletaActual = null;
 let tabLicActual = 'todas';
 let asignarLicenciaActual = null;
+let inactividadTimer;
 
 // ============================================================
 // UTILIDADES
@@ -693,6 +695,24 @@ function renderAcList(container, items, renderItem, onPick) {
 function hideAc(container) { document.getElementById(container).classList.remove('show'); }
 
 // ============================================================
+// CONTROL DE SESIÓN POR INACTIVIDAD
+// ============================================================
+function resetInactividad() {
+  clearTimeout(inactividadTimer);
+  // Solo inicia el timer si hay un usuario logueado
+  if (localStorage.getItem('sv_user')) {
+    inactividadTimer = setTimeout(() => {
+      toast('Sesión cerrada por inactividad', 'error');
+      doLogout();
+    }, INACTIVIDAD_MS);
+  }
+}
+// Eventos que reinician el contador
+['mousemove', 'mousedown', 'keydown', 'scroll', 'touchstart'].forEach(evt => {
+  document.addEventListener(evt, resetInactividad, true);
+});
+
+// ============================================================
 // AUTH
 // ============================================================
 async function doLogin() {
@@ -705,21 +725,32 @@ async function doLogin() {
   if (error) { err.innerHTML = '<div class="err">Error: ' + esc(error.message) + '</div>'; return; }
   if (!data || data.length === 0) { err.innerHTML = '<div class="err">Credenciales incorrectas</div>'; return; }
   localStorage.setItem('sv_user', JSON.stringify(data[0]));
+  resetInactividad(); // Iniciar temporizador
   boot();
 }
-function doLogout() { localStorage.removeItem('sv_user'); location.reload(); }
+function doLogout() {
+  clearTimeout(inactividadTimer);
+  localStorage.removeItem('sv_user');
+  location.reload();
+}
 
 // ============================================================
 // BOOT
 // ============================================================
 async function boot() {
   const raw = localStorage.getItem('sv_user');
-  if (!raw) { document.getElementById('loginView').style.display = 'flex'; document.getElementById('appView').classList.remove('show'); return; }
+  if (!raw) {
+    document.getElementById('loginView').style.display = 'flex';
+    document.getElementById('appView').classList.remove('show');
+    clearTimeout(inactividadTimer);
+    return;
+  }
   const u = JSON.parse(raw);
   document.getElementById('loginView').style.display = 'none';
   document.getElementById('appView').classList.add('show');
   document.getElementById('userName').textContent = u.nombre;
   document.getElementById('userEmailSb').textContent = u.email;
+  resetInactividad(); // Asegurar que el timer esté corriendo si recarga
   await loadAll();
   switchView('dashboard');
 }
@@ -1439,11 +1470,13 @@ function renderLicencias() {
       : l.estado === 'En uso' ? '<span class="badge orange">En uso</span>'
       : l.estado === 'Vencida' ? '<span class="badge red">Vencida</span>'
       : '<span class="badge gray">Usada</span>';
+    // Actualización: Enlace clicable
     const cred = [
       l.clave ? `<div style="font-family:monospace;font-size:12px">${esc(l.clave)}</div>` : '',
       l.correo ? `<div style="font-size:11px;color:#64748b">✉ ${esc(l.correo)}</div>` : '',
-      l.link_descarga ? `<div style="font-size:11px;color:#64748b">🔗 link</div>` : ''
+      l.link_descarga ? `<div style="font-size:11px;color:var(--brand);text-decoration:underline;cursor:pointer" onclick="window.open('${esc(l.link_descarga)}', '_blank')">🔗 Link de descarga</div>` : ''
     ].filter(Boolean).join('') || '—';
+    
     const prodLabel = l.productos ? `${esc(l.productos.nombre)} <span class="ver">Versión ${esc(l.productos.version || '')}</span>` : '—';
     return `<tr>
       <td>${cred}</td>
@@ -1652,6 +1685,7 @@ async function descargarBoletaPDF() {
 // ============================================================
 // INICIO
 // ============================================================
+resetInactividad(); // Iniciar control de sesión al cargar
 boot();
 </script>
 </body>
