@@ -903,7 +903,8 @@ async function saveProducto() {
 // ============================================================
 async function loadVentas() {
   const { data, error } = await sb.from('ventas')
-    .select('*, clientes(nombre), productos(nombre, version), licencias(clave, correo, link_descarga, tipo)')
+    // 👇 Desambiguamos la relación ventas↔licencias usando la FK ventas.licencia_id
+    .select('*, clientes(nombre), productos(nombre, version), licencias!ventas_licencia_id_fkey(clave, correo, link_descarga, tipo)')
     .order('fecha_venta', { ascending: false });
   if (error) return toast('Error ventas: ' + error.message, 'error');
   state.ventas = data;
