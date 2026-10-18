@@ -103,6 +103,7 @@
   .form-grid input:focus, .form-grid select:focus, .form-grid textarea:focus { outline: none; border-color: var(--brand); box-shadow: 0 0 0 3px rgba(37,99,235,.12); }
   .form-grid textarea { resize: vertical; min-height: 70px; }
   .hint { font-size: 11px; color: var(--muted); margin-top: 3px; }
+  .req { color: var(--danger); }
 
   #toast { position: fixed; bottom: 24px; right: 24px; display: flex; flex-direction: column; gap: 8px; z-index: 200; }
   .toast-item { background: #0f172a; color: #fff; padding: 12px 18px; border-radius: 8px; font-size: 13px; box-shadow: 0 10px 30px rgba(0,0,0,.2); animation: slideIn .2s ease; }
@@ -224,7 +225,7 @@
           <button class="btn" onclick="openProductoModal()">+ Nuevo producto</button>
         </div>
         <div class="table-wrap"><table>
-          <thead><tr><th>Nombre</th><th>Categoría</th><th>Precio</th><th>Moneda</th><th>Tipo</th><th>Antivirus</th><th>Estado</th><th>Acciones</th></tr></thead>
+          <thead><tr><th>Nombre</th><th>Categoría</th><th>Precio</th><th>Moneda</th><th>Tipo</th><th>Estado</th><th>Acciones</th></tr></thead>
           <tbody id="productosTbody"></tbody>
         </table></div>
       </div>
@@ -267,29 +268,45 @@
 
     <section id="view-licencias" style="display:none">
       <h1 class="page-title">Licencias <small>Pool de licencias de pago, gratuitas y de prueba</small></h1>
+
       <div class="card">
-        <div class="card-head"><h2>Agregar licencia</h2></div>
-        <div class="form-grid">
-          <div><label>Tipo</label>
-            <select id="nuevaLicTipo">
-              <option value="pago">De pago</option>
-              <option value="gratuita">Gratuita</option>
-              <option value="prueba">De prueba</option>
-            </select>
-          </div>
-          <div><label>Producto (opcional)</label><select id="nuevaLicProducto"></select></div>
-          <div class="full"><label>Clave (20–25 caracteres, opcional)</label>
-            <input id="nuevaLicClave" maxlength="25" style="font-family:monospace"
-                   oninput="document.getElementById('licCont').textContent = this.value.length + ' / 25'" />
-            <div class="hint" id="licCont">0 / 25</div>
-          </div>
-          <div><label>Correo (opcional)</label><input id="nuevaLicCorreo" type="email" /></div>
-          <div><label>Contraseña (opcional)</label><input id="nuevaLicPass" /></div>
-          <div class="full"><label>Link de descarga (opcional)</label><input id="nuevaLicLink" /></div>
-          <div><label>Fecha de expiración</label><input id="nuevaLicExp" type="date" /></div>
-          <div><label>Notas</label><input id="nuevaLicNotas" /></div>
+        <div class="card-head">
+          <h2>Agregar licencia</h2>
+          <button class="btn" id="btnToggleLicForm" onclick="toggleLicForm()">➕ Agregar licencia</button>
         </div>
-        <div style="margin-top:14px"><button class="btn" onclick="agregarLicencia()">Agregar al pool</button></div>
+        <div id="licFormWrap" style="display:none">
+          <div class="form-grid">
+            <div><label>Tipo <span class="req">*</span></label>
+              <select id="nuevaLicTipo">
+                <option value="pago">De pago</option>
+                <option value="gratuita">Gratuita</option>
+                <option value="prueba">De prueba</option>
+              </select>
+            </div>
+            <div><label>Producto <span class="req">*</span></label>
+              <select id="nuevaLicProducto" onchange="onNuevaLicProductoChange()">
+                <option value="">— Selecciona producto —</option>
+              </select>
+            </div>
+            <div><label>Categoría (derivada)</label>
+              <input id="nuevaLicCategoria" readonly placeholder="Se completa al elegir producto" />
+            </div>
+            <div><label>Fecha de expiración</label><input id="nuevaLicExp" type="date" /></div>
+            <div class="full"><label>Clave (20–25 caracteres, opcional)</label>
+              <input id="nuevaLicClave" maxlength="25" style="font-family:monospace"
+                     oninput="document.getElementById('licCont').textContent = this.value.length + ' / 25'" />
+              <div class="hint" id="licCont">0 / 25</div>
+            </div>
+            <div><label>Correo (opcional)</label><input id="nuevaLicCorreo" type="email" /></div>
+            <div><label>Contraseña (opcional)</label><input id="nuevaLicPass" /></div>
+            <div class="full"><label>Link de descarga (opcional)</label><input id="nuevaLicLink" /></div>
+            <div class="full"><label>Notas</label><input id="nuevaLicNotas" /></div>
+          </div>
+          <div style="margin-top:14px;display:flex;gap:8px">
+            <button class="btn" onclick="agregarLicencia()">Guardar en el pool</button>
+            <button class="btn secondary" onclick="toggleLicForm(true)">Cancelar</button>
+          </div>
+        </div>
       </div>
 
       <div class="card">
@@ -325,7 +342,7 @@
     <div class="modal-body">
       <input type="hidden" id="clienteId" />
       <div class="form-grid">
-        <div class="full"><label>Nombre *</label><input id="clienteNombre" /></div>
+        <div class="full"><label>Nombre <span class="req">*</span></label><input id="clienteNombre" /></div>
         <div class="full"><label>Correo</label><input id="clienteCorreo" type="email" /></div>
       </div>
     </div>
@@ -342,7 +359,7 @@
     <div class="modal-body">
       <input type="hidden" id="categoriaId" />
       <div class="form-grid">
-        <div class="full"><label>Nombre *</label><input id="categoriaNombre" /></div>
+        <div class="full"><label>Nombre <span class="req">*</span></label><input id="categoriaNombre" /></div>
         <div class="full"><label>Descripción</label><input id="categoriaDescripcion" /></div>
         <div><label>Activa</label>
           <select id="categoriaActivo"><option value="true">Sí</option><option value="false">No</option></select>
@@ -362,17 +379,14 @@
     <div class="modal-body">
       <input type="hidden" id="productoId" />
       <div class="form-grid">
-        <div class="full"><label>Nombre *</label><input id="productoNombre" /></div>
-        <div><label>Categoría *</label><select id="productoCategoriaId"></select></div>
+        <div class="full"><label>Nombre <span class="req">*</span></label><input id="productoNombre" /></div>
+        <div><label>Categoría <span class="req">*</span></label><select id="productoCategoriaId"></select></div>
         <div><label>Precio base</label><input id="productoPrecio" type="number" step="0.01" value="0" /></div>
         <div><label>Moneda</label>
           <select id="productoMoneda"><option value="PEN">S/ Soles (PEN)</option><option value="USD">$ Dólares (USD)</option><option value="EUR">€ Euros (EUR)</option></select>
         </div>
         <div><label>Tipo de licencia</label>
           <select id="productoTipo"><option>Perpetua</option><option>Suscripción</option></select>
-        </div>
-        <div><label>¿Es antivirus?</label>
-          <select id="productoEsAntivirus"><option value="false">No</option><option value="true">Sí</option></select>
         </div>
         <div><label>Activo</label>
           <select id="productoActivo"><option value="true">Sí</option><option value="false">No</option></select>
@@ -392,9 +406,9 @@
     <div class="modal-body">
       <input type="hidden" id="ventaId" />
       <div class="form-grid">
-        <div><label>Cliente *</label><select id="ventaCliente"></select></div>
-        <div><label>Producto *</label><select id="ventaProducto" onchange="onProductoChange()"></select></div>
-        <div><label>Precio de venta *</label><input id="ventaPrecio" type="number" step="0.01" value="0" /></div>
+        <div><label>Cliente <span class="req">*</span></label><select id="ventaCliente"></select></div>
+        <div><label>Producto <span class="req">*</span></label><select id="ventaProducto" onchange="onProductoChange()"></select></div>
+        <div><label>Precio de venta <span class="req">*</span></label><input id="ventaPrecio" type="number" step="0.01" value="0" /></div>
         <div><label>Moneda</label>
           <select id="ventaMoneda"><option value="PEN">PEN</option><option value="USD">USD</option><option value="EUR">EUR</option></select>
         </div>
@@ -410,12 +424,13 @@
         <div><label>Correo de suscripción</label><input id="ventaCorreoSuscripcion" type="email" /></div>
         <div class="full"><label>Anotaciones</label><textarea id="ventaAnotaciones"></textarea></div>
         <div class="full" style="display:flex;align-items:center;gap:8px">
-          <input type="checkbox" id="ventaEsPrueba" style="width:auto" onchange="toggleLicenciaBox()" />
-          <label style="margin:0">Vincular licencia del pool (paga, gratuita o prueba)</label>
+          <input type="checkbox" id="ventaVincularLic" style="width:auto" onchange="toggleLicenciaBox()" />
+          <label style="margin:0">Vincular licencia del pool</label>
         </div>
         <div class="full" id="ventaLicenciaBox" style="display:none">
           <label>Licencia a asignar</label>
           <select id="ventaLicencia"><option value="">— Selecciona licencia disponible —</option></select>
+          <div class="hint" id="ventaLicenciaHint"></div>
         </div>
       </div>
     </div>
@@ -432,7 +447,7 @@
     <div class="modal-body">
       <p id="devolucionInfo" style="font-size:13px;color:var(--muted);margin-top:0"></p>
       <div class="form-grid">
-        <div class="full"><label>Motivo de la devolución *</label><textarea id="devolucionMotivo" placeholder="Ej. El cliente no pudo activar la licencia..."></textarea></div>
+        <div class="full"><label>Motivo de la devolución <span class="req">*</span></label><textarea id="devolucionMotivo" placeholder="Ej. El cliente no pudo activar la licencia..."></textarea></div>
         <div><label>Monto reembolsado</label><input id="devolucionMonto" type="number" step="0.01" value="0" /></div>
         <div class="full" style="display:flex;align-items:center;gap:8px">
           <input type="checkbox" id="devolucionReutilizar" style="width:auto" />
@@ -459,7 +474,8 @@
         <div><label>Estado</label>
           <select id="editLicEstado"><option>Disponible</option><option>En uso</option><option>Usada</option><option>Vencida</option></select>
         </div>
-        <div><label>Producto</label><select id="editLicProducto"></select></div>
+        <div><label>Producto <span class="req">*</span></label><select id="editLicProducto" onchange="onEditLicProductoChange()"></select></div>
+        <div><label>Categoría (derivada)</label><input id="editLicCategoria" readonly /></div>
         <div><label>Expira</label><input id="editLicExp" type="date" /></div>
         <div class="full"><label>Clave (20–25)</label><input id="editLicClave" maxlength="25" style="font-family:monospace" /></div>
         <div><label>Correo</label><input id="editLicCorreo" type="email" /></div>
@@ -553,6 +569,12 @@ function nextCorrelativo() {
   localStorage.setItem(key, String(n));
   return `SV-${ymd}-${String(n).padStart(4,'0')}`;
 }
+function categoriaNombreDe(productoId) {
+  const p = state.productos.find(x => x.id === productoId);
+  if (!p) return '';
+  const c = state.categorias.find(x => x.id === p.categoria_id);
+  return c?.nombre || '';
+}
 
 // ============================================================
 // AUTH
@@ -615,7 +637,6 @@ function renderDashboard() {
     const d = new Date(v.fecha_venta); const now = new Date();
     return d.getMonth() === now.getMonth() && d.getFullYear() === now.getFullYear();
   });
-  // Sumar solo PEN para el total principal
   const ingresosPEN = ventasMes.filter(v => (v.moneda||'PEN') === 'PEN').reduce((s, v) => s + Number(v.precio_venta || 0), 0);
   const licDisp = state.licencias.filter(l => l.estado === 'Disponible').length;
   const porVencer = state.ventas.filter(v => {
@@ -713,7 +734,6 @@ async function loadCategorias() {
   const { data, error } = await sb.from('categorias').select('*').order('nombre');
   if (error) return toast('Error categorías: ' + error.message, 'error');
   state.categorias = data;
-  // Contar productos por categoría
   const counts = {};
   state.productos.forEach(p => { if (p.categoria_id) counts[p.categoria_id] = (counts[p.categoria_id]||0) + 1; });
   document.getElementById('categoriasTbody').innerHTML = data.map(c => `
@@ -761,9 +781,9 @@ async function saveCategoria() {
   fillSelectsCategorias();
 }
 async function deleteCategoria(id) {
-  if (!confirm('¿Eliminar esta categoría? Los productos asociados quedarán sin categoría.')) return;
+  if (!confirm('¿Eliminar esta categoría? Los productos asociados no podrán existir sin categoría.')) return;
   const { error } = await sb.from('categorias').delete().eq('id', id);
-  if (error) return toast(error.message, 'error');
+  if (error) return toast('No se puede eliminar: ' + error.message, 'error');
   toast('Categoría eliminada');
   await loadCategorias();
   await loadProductos();
@@ -781,23 +801,21 @@ async function loadProductos() {
   document.getElementById('productosTbody').innerHTML = data.map(p => `
     <tr>
       <td>${esc(p.nombre)}</td>
-      <td>${esc(p.categorias?.nombre || p.categoria || '—')}</td>
+      <td>${esc(p.categorias?.nombre || '—')}</td>
       <td>${fmtMoney(p.precio_base, p.moneda || 'PEN')}</td>
       <td>${esc(p.moneda || 'PEN')}</td>
       <td>${esc(p.tipo_licencia)}</td>
-      <td>${p.es_antivirus ? 'Sí' : 'No'}</td>
       <td><span class="badge ${p.activo?'green':'gray'}">${p.activo?'Activo':'Inactivo'}</span></td>
       <td class="actions">
         <button class="btn small secondary" onclick="openProductoModal('${p.id}')">Editar</button>
       </td>
-    </tr>`).join('') || '<tr><td colspan="8" class="empty">Sin productos</td></tr>';
+    </tr>`).join('') || '<tr><td colspan="7" class="empty">Sin productos</td></tr>';
 }
 function fillSelectsCategorias() {
   const cats = state.categorias.filter(c => c.activo);
   setOptions(document.getElementById('productoCategoriaId'), cats, 'id', c => c.nombre, '— Selecciona categoría —');
-  // En licencias también
-  setOptions(document.getElementById('nuevaLicProducto'), state.productos, 'id', p => p.nombre, '— Sin producto —');
-  setOptions(document.getElementById('editLicProducto'), state.productos, 'id', p => p.nombre, '— Sin producto —');
+  setOptions(document.getElementById('editLicProducto'), state.productos.filter(p => p.activo), 'id', p => p.nombre, '— Selecciona producto —');
+  setOptions(document.getElementById('nuevaLicProducto'), state.productos.filter(p => p.activo), 'id', p => p.nombre, '— Selecciona producto —');
 }
 function fillSelectsProductos() {
   setOptions(document.getElementById('ventaProducto'), state.productos.filter(p => p.activo), 'id', p => p.nombre, '— Selecciona producto —');
@@ -813,7 +831,6 @@ function openProductoModal(id=null) {
     document.getElementById('productoPrecio').value = p?.precio_base ?? 0;
     document.getElementById('productoMoneda').value = p?.moneda || 'PEN';
     document.getElementById('productoTipo').value = p?.tipo_licencia || 'Perpetua';
-    document.getElementById('productoEsAntivirus').value = String(!!p?.es_antivirus);
     document.getElementById('productoActivo').value = String(!!p?.activo);
   } else {
     document.getElementById('productoNombre').value = '';
@@ -821,7 +838,6 @@ function openProductoModal(id=null) {
     document.getElementById('productoPrecio').value = 0;
     document.getElementById('productoMoneda').value = 'PEN';
     document.getElementById('productoTipo').value = 'Perpetua';
-    document.getElementById('productoEsAntivirus').value = 'false';
     document.getElementById('productoActivo').value = 'true';
   }
   openModal('modalProducto');
@@ -834,10 +850,10 @@ async function saveProducto() {
     precio_base: Number(document.getElementById('productoPrecio').value) || 0,
     moneda: document.getElementById('productoMoneda').value,
     tipo_licencia: document.getElementById('productoTipo').value,
-    es_antivirus: document.getElementById('productoEsAntivirus').value === 'true',
     activo: document.getElementById('productoActivo').value === 'true',
   };
   if (!payload.nombre) return toast('El nombre es obligatorio', 'error');
+  if (!payload.categoria_id) return toast('La categoría es obligatoria', 'error');
   let error;
   if (id) ({ error } = await sb.from('productos').update(payload).eq('id', id));
   else ({ error } = await sb.from('productos').insert(payload));
@@ -920,7 +936,7 @@ function openVentaModal(id=null) {
     document.getElementById('ventaCaducidad').value = v?.fecha_caducidad || '';
     document.getElementById('ventaCorreoSuscripcion').value = v?.correo_suscripcion || '';
     document.getElementById('ventaAnotaciones').value = v?.anotaciones || '';
-    document.getElementById('ventaEsPrueba').checked = !!v?.es_prueba;
+    document.getElementById('ventaVincularLic').checked = false;
   } else {
     document.getElementById('ventaCliente').value = '';
     document.getElementById('ventaProducto').value = '';
@@ -935,7 +951,7 @@ function openVentaModal(id=null) {
     document.getElementById('ventaCaducidad').value = '';
     document.getElementById('ventaCorreoSuscripcion').value = '';
     document.getElementById('ventaAnotaciones').value = '';
-    document.getElementById('ventaEsPrueba').checked = false;
+    document.getElementById('ventaVincularLic').checked = false;
   }
   toggleLicenciaBox();
   openModal('modalVenta');
@@ -949,18 +965,31 @@ function onProductoChange() {
     document.getElementById('ventaMoneda').value = p.moneda || 'PEN';
     document.getElementById('ventaTipo').value = p.tipo_licencia;
   }
+  if (document.getElementById('ventaVincularLic').checked) {
+    llenarSelectLicenciasVenta();
+  }
+}
+
+function llenarSelectLicenciasVenta() {
+  const pid = document.getElementById('ventaProducto').value;
+  const hint = document.getElementById('ventaLicenciaHint');
+  if (!pid) {
+    setOptions(document.getElementById('ventaLicencia'), [], 'id', () => '', '— Elige primero un producto —');
+    hint.textContent = 'Selecciona un producto para ver sus licencias disponibles.';
+    return;
+  }
+  const disp = state.licencias.filter(l => l.estado === 'Disponible' && l.producto_id === pid);
+  setOptions(document.getElementById('ventaLicencia'), disp, 'id', l => {
+    const tipo = l.tipo === 'prueba' ? 'Prueba' : l.tipo === 'pago' ? 'Pago' : 'Gratuita';
+    return `${tipo} · ${l.clave || l.correo || l.link_descarga || '—'}`;
+  }, '— Selecciona licencia disponible —');
+  hint.textContent = `${disp.length} licencia(s) disponible(s) para este producto.`;
 }
 
 function toggleLicenciaBox() {
-  const checked = document.getElementById('ventaEsPrueba').checked;
+  const checked = document.getElementById('ventaVincularLic').checked;
   document.getElementById('ventaLicenciaBox').style.display = checked ? 'block' : 'none';
-  if (checked) {
-    const disp = state.licencias.filter(l => l.estado === 'Disponible');
-    setOptions(document.getElementById('ventaLicencia'), disp, 'id', l => {
-      const tipo = l.es_prueba ? 'Prueba' : l.es_pago ? 'Pago' : 'Gratuita';
-      return `${tipo} · ${l.clave || l.correo || l.link_descarga || '—'}`;
-    }, '— Selecciona licencia disponible —');
-  }
+  if (checked) llenarSelectLicenciasVenta();
 }
 
 async function saveVenta() {
@@ -979,7 +1008,7 @@ async function saveVenta() {
     fecha_caducidad: document.getElementById('ventaCaducidad').value || null,
     correo_suscripcion: document.getElementById('ventaCorreoSuscripcion').value.trim() || null,
     anotaciones: document.getElementById('ventaAnotaciones').value.trim() || null,
-    es_prueba: document.getElementById('ventaEsPrueba').checked,
+    es_prueba: false,
   };
   if (!payload.cliente_id || !payload.producto_id) return toast('Cliente y producto son obligatorios', 'error');
 
@@ -994,7 +1023,6 @@ async function saveVenta() {
   }
   if (error) return toast(error.message, 'error');
 
-  // Asignar licencia del pool si se seleccionó
   const licId = document.getElementById('ventaLicencia').value;
   if (licId && ventaId) {
     const { error: e2 } = await sb.rpc('asignar_licencia', {
@@ -1078,13 +1106,13 @@ function renderLicencias() {
   const f = document.getElementById('filtroLicEstado').value;
   let rows = state.licencias;
   if (f) rows = rows.filter(l => l.estado === f);
-  if (tabLicActual === 'pago') rows = rows.filter(l => l.es_pago && !l.es_prueba);
-  if (tabLicActual === 'gratuita') rows = rows.filter(l => !l.es_pago && !l.es_prueba);
-  if (tabLicActual === 'prueba') rows = rows.filter(l => l.es_prueba);
+  if (tabLicActual === 'pago') rows = rows.filter(l => l.tipo === 'pago');
+  if (tabLicActual === 'gratuita') rows = rows.filter(l => l.tipo === 'gratuita');
+  if (tabLicActual === 'prueba') rows = rows.filter(l => l.tipo === 'prueba');
 
   document.getElementById('licenciasTbody').innerHTML = rows.map(l => {
-    const tipo = l.es_prueba ? '<span class="badge blue">Prueba</span>'
-      : l.es_pago ? '<span class="badge purple">Pago</span>'
+    const tipo = l.tipo === 'prueba' ? '<span class="badge blue">Prueba</span>'
+      : l.tipo === 'pago' ? '<span class="badge purple">Pago</span>'
       : '<span class="badge gray">Gratuita</span>';
     const estado = l.estado === 'Disponible' ? '<span class="badge green">Disponible</span>'
       : l.estado === 'En uso' ? '<span class="badge orange">En uso</span>'
@@ -1112,24 +1140,50 @@ function renderLicencias() {
   }).join('') || '<tr><td colspan="7" class="empty">Sin licencias</td></tr>';
 }
 
+function toggleLicForm(forceHide=false) {
+  const wrap = document.getElementById('licFormWrap');
+  const btn = document.getElementById('btnToggleLicForm');
+  if (forceHide) {
+    wrap.style.display = 'none';
+    btn.textContent = '➕ Agregar licencia';
+    return;
+  }
+  const visible = wrap.style.display !== 'none';
+  wrap.style.display = visible ? 'none' : 'block';
+  btn.textContent = visible ? '➕ Agregar licencia' : '✖ Cerrar formulario';
+  if (!visible) {
+    fillSelectsCategorias();
+    document.getElementById('nuevaLicCategoria').value = '';
+  }
+}
+
+function onNuevaLicProductoChange() {
+  const pid = document.getElementById('nuevaLicProducto').value;
+  document.getElementById('nuevaLicCategoria').value = categoriaNombreDe(pid);
+}
+function onEditLicProductoChange() {
+  const pid = document.getElementById('editLicProducto').value;
+  document.getElementById('editLicCategoria').value = categoriaNombreDe(pid);
+}
+
 async function agregarLicencia() {
   const tipo = document.getElementById('nuevaLicTipo').value;
+  const producto_id = document.getElementById('nuevaLicProducto').value;
   const clave = document.getElementById('nuevaLicClave').value.trim() || null;
   const correo = document.getElementById('nuevaLicCorreo').value.trim() || null;
   const password = document.getElementById('nuevaLicPass').value || null;
   const link = document.getElementById('nuevaLicLink').value.trim() || null;
-  const prod = document.getElementById('nuevaLicProducto').value || null;
   const exp = document.getElementById('nuevaLicExp').value || null;
   const notas = document.getElementById('nuevaLicNotas').value.trim() || null;
 
+  if (!producto_id) return toast('El producto es obligatorio', 'error');
   if (!clave && !correo && !link) return toast('Debe haber al menos clave, correo o link', 'error');
   if (clave && (clave.length < 20 || clave.length > 25)) return toast('La clave debe tener entre 20 y 25 caracteres', 'error');
 
   const payload = {
-    es_pago: tipo === 'pago',
-    es_prueba: tipo === 'prueba',
+    tipo,
+    producto_id,
     clave, correo, password, link_descarga: link,
-    producto_id: prod,
     estado: 'Disponible',
     fecha_expiracion: exp,
     notas,
@@ -1143,16 +1197,27 @@ async function agregarLicencia() {
   document.getElementById('nuevaLicLink').value = '';
   document.getElementById('nuevaLicExp').value = '';
   document.getElementById('nuevaLicNotas').value = '';
+  document.getElementById('nuevaLicProducto').value = '';
+  document.getElementById('nuevaLicCategoria').value = '';
   document.getElementById('licCont').textContent = '0 / 25';
+  toggleLicForm(true);
   await loadLicencias();
   renderDashboard();
 }
 
 function asignarLicencia(licId) {
   openVentaModal();
-  document.getElementById('ventaEsPrueba').checked = true;
+  document.getElementById('ventaVincularLic').checked = true;
   toggleLicenciaBox();
-  setTimeout(() => { document.getElementById('ventaLicencia').value = licId; }, 50);
+  const lic = state.licencias.find(l => l.id === licId);
+  if (lic) {
+    document.getElementById('ventaProducto').value = lic.producto_id;
+    onProductoChange();
+    setTimeout(() => {
+      llenarSelectLicenciasVenta();
+      document.getElementById('ventaLicencia').value = licId;
+    }, 50);
+  }
 }
 
 async function liberarLicencia(licId) {
@@ -1177,9 +1242,10 @@ function openLicenciaEdit(licId) {
   const l = state.licencias.find(x => x.id === licId);
   if (!l) return;
   document.getElementById('editLicId').value = l.id;
-  document.getElementById('editLicTipo').value = l.es_prueba ? 'prueba' : l.es_pago ? 'pago' : 'gratuita';
+  document.getElementById('editLicTipo').value = l.tipo;
   document.getElementById('editLicEstado').value = l.estado;
   document.getElementById('editLicProducto').value = l.producto_id || '';
+  document.getElementById('editLicCategoria').value = categoriaNombreDe(l.producto_id);
   document.getElementById('editLicExp').value = l.fecha_expiracion || '';
   document.getElementById('editLicClave').value = l.clave || '';
   document.getElementById('editLicCorreo').value = l.correo || '';
@@ -1190,14 +1256,14 @@ function openLicenciaEdit(licId) {
 }
 async function saveLicenciaEdit() {
   const id = document.getElementById('editLicId').value;
-  const tipo = document.getElementById('editLicTipo').value;
+  const producto_id = document.getElementById('editLicProducto').value;
   const clave = document.getElementById('editLicClave').value.trim() || null;
+  if (!producto_id) return toast('El producto es obligatorio', 'error');
   if (clave && (clave.length < 20 || clave.length > 25)) return toast('La clave debe tener entre 20 y 25 caracteres', 'error');
   const payload = {
-    es_pago: tipo === 'pago',
-    es_prueba: tipo === 'prueba',
+    tipo: document.getElementById('editLicTipo').value,
     estado: document.getElementById('editLicEstado').value,
-    producto_id: document.getElementById('editLicProducto').value || null,
+    producto_id,
     fecha_expiracion: document.getElementById('editLicExp').value || null,
     clave,
     correo: document.getElementById('editLicCorreo').value.trim() || null,
