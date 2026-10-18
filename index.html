@@ -86,6 +86,7 @@
   .badge.red { background: #fee2e2; color: #991b1b; }
   .badge.blue { background: #dbeafe; color: #1e40af; }
   .badge.purple { background: #ede9fe; color: #5b21b6; }
+  .badge.teal { background: #ccfbf1; color: #115e59; }
 
   .modal-bg { position: fixed; inset: 0; background: rgba(15,23,42,.55); display: none;
     align-items: flex-start; justify-content: center; padding: 40px 16px; overflow-y: auto; z-index: 100; }
@@ -245,7 +246,7 @@
           <button class="btn" onclick="openProductoModal()">+ Nuevo producto</button>
         </div>
         <div class="table-wrap"><table>
-          <thead><tr><th>Nombre</th><th>Versión</th><th>Categoría</th><th>Precio</th><th>Tipo</th><th>Stock</th><th>Estado</th><th>Acciones</th></tr></thead>
+          <thead><tr><th>Nombre</th><th>Versión</th><th>Categoría</th><th>Precio</th><th>Tipo licencia</th><th>Stock</th><th>Estado</th><th>Acciones</th></tr></thead>
           <tbody id="productosTbody"></tbody>
         </table></div>
       </div>
@@ -264,6 +265,8 @@
             <option value="">Todos los tipos</option>
             <option value="Perpetua">Perpetua</option>
             <option value="Suscripción">Suscripción</option>
+            <option value="Anual">Anual</option>
+            <option value="Gratuita">Gratuita</option>
           </select>
           <select id="filtroEstado" onchange="renderVentas()">
             <option value="">Todos los estados</option>
@@ -413,12 +416,18 @@
         <div><label>Categoría <span class="req">*</span></label><select id="productoCategoriaId"></select></div>
         <div><label>Precio base (S/)</label><input id="productoPrecio" type="number" step="0.01" value="0" /></div>
         <div><label>Tipo de licencia</label>
-          <select id="productoTipo"><option>Perpetua</option><option>Suscripción</option></select>
+          <select id="productoTipo" onchange="onProductoTipoChange()">
+            <option>Perpetua</option>
+            <option>Suscripción</option>
+            <option>Anual</option>
+            <option>Gratuita</option>
+          </select>
         </div>
         <div><label>Activo</label>
           <select id="productoActivo"><option value="true">Sí</option><option value="false">No</option></select>
         </div>
       </div>
+      <div class="hint" id="productoPrecioHint"></div>
     </div>
     <div class="modal-foot">
       <button class="btn secondary" onclick="closeModal('modalProducto')">Cancelar</button>
@@ -436,7 +445,6 @@
       <input type="hidden" id="ventaClienteId" />
 
       <div class="form-grid">
-        <!-- Cliente con buscador -->
         <div class="full ac-wrap">
           <label>Cliente <span class="req">*</span></label>
           <input id="buscarCliente" placeholder="🔍 Buscar por nombre, DNI o celular..." autocomplete="off" oninput="onBuscarCliente()" onfocus="onBuscarCliente()" />
@@ -444,7 +452,6 @@
           <div class="hint" id="clienteSeleccionadoHint">Sin cliente seleccionado.</div>
         </div>
 
-        <!-- Producto con buscador -->
         <div class="full ac-wrap">
           <label>Producto <span class="req">*</span></label>
           <input id="buscarProducto" placeholder="🔍 Buscar producto por nombre..." autocomplete="off" oninput="onBuscarProducto()" onfocus="onBuscarProducto()" />
@@ -459,15 +466,21 @@
 
         <div><label>Precio de venta (S/) <span class="req">*</span></label><input id="ventaPrecio" type="number" step="0.01" value="0" /></div>
         <div><label>Tipo de licencia</label>
-          <select id="ventaTipo" onchange="onTipoLicenciaChange()" disabled><option>Perpetua</option><option>Suscripción</option></select>
+          <select id="ventaTipo" onchange="onTipoLicenciaChange()">
+            <option>Perpetua</option>
+            <option>Suscripción</option>
+            <option>Anual</option>
+            <option>Gratuita</option>
+          </select>
         </div>
         <div><label>Sistema operativo</label><input id="ventaSO" placeholder="Windows 11, macOS, etc." /></div>
         <div class="full"><label>Descripción</label><input id="ventaDescripcion" /></div>
         <div class="full"><label>Datos de licencia (clave/serial)</label><input id="ventaDatosLicencia" style="font-family:monospace" /></div>
-        <div><label>Fecha de caducidad <span id="reqCaducidad" class="req" style="display:none">*</span></label><input id="ventaCaducidad" type="date" disabled /></div>
+        <div><label>Fecha de caducidad <span id="reqCaducidad" class="req" style="display:none">*</span></label><input id="ventaCaducidad" type="date" /></div>
         <div><label>Correo de suscripción (opcional)</label><input id="ventaCorreoSuscripcion" type="email" /></div>
         <div class="full"><label>Anotaciones</label><textarea id="ventaAnotaciones"></textarea></div>
       </div>
+      <div class="hint" id="ventaPrecioHint"></div>
     </div>
     <div class="modal-foot">
       <button class="btn secondary" onclick="closeModal('modalVenta')">Cancelar</button>
@@ -476,7 +489,7 @@
   </div>
 </div>
 
-<!-- Asignar licencia (flujo desde Licencias) -->
+<!-- Asignar licencia -->
 <div class="modal-bg" id="modalAsignar">
   <div class="modal">
     <div class="modal-head"><h3>Asignar licencia a cliente</h3><button onclick="closeModal('modalAsignar')">×</button></div>
@@ -501,6 +514,7 @@
         <div><label>Fecha de caducidad <span id="asignarReqCad" class="req" style="display:none">*</span></label><input id="asignarCaducidad" type="date" /></div>
         <div class="full"><label>Anotaciones</label><textarea id="asignarAnotaciones" placeholder="Opcional"></textarea></div>
       </div>
+      <div class="hint" id="asignarPrecioHint"></div>
     </div>
     <div class="modal-foot">
       <button class="btn secondary" onclick="closeModal('modalAsignar')">Cancelar</button>
@@ -647,9 +661,18 @@ function categoriaNombreDe(productoId) {
 function stockProducto(productoId) {
   return state.licencias.filter(l => l.estado === 'Disponible' && l.producto_id === productoId).length;
 }
+function requiereCaducidad(tipo) {
+  return tipo === 'Suscripción' || tipo === 'Anual';
+}
+function tipoBadge(tipo) {
+  if (tipo === 'Gratuita') return '<span class="badge teal">Gratuita</span>';
+  if (tipo === 'Anual') return '<span class="badge orange">Anual</span>';
+  if (tipo === 'Suscripción') return '<span class="badge blue">Suscripción</span>';
+  return '<span class="badge gray">Perpetua</span>';
+}
 
 // ============================================================
-// AUTOCOMPLETE (reutilizable)
+// AUTOCOMPLETE
 // ============================================================
 function renderAcList(container, items, renderItem, onPick) {
   const el = document.getElementById(container);
@@ -667,9 +690,7 @@ function renderAcList(container, items, renderItem, onPick) {
     };
   });
 }
-function hideAc(container) {
-  document.getElementById(container).classList.remove('show');
-}
+function hideAc(container) { document.getElementById(container).classList.remove('show'); }
 
 // ============================================================
 // AUTH
@@ -713,7 +734,6 @@ async function loadAll() {
 function renderFiltroClientes() {
   setOptions(document.getElementById('filtroCliente'), state.clientes, 'id', c => `${c.nombre} (${c.dni || '—'})`, 'Todos los clientes');
 }
-
 function switchView(name) {
   ['dashboard','clientes','categorias','productos','ventas','licencias'].forEach(v => {
     document.getElementById('view-' + v).style.display = (v === name) ? 'block' : 'none';
@@ -804,8 +824,7 @@ async function saveCliente() {
   if (celular.length !== 9) return toast('El celular debe tener exactamente 9 dígitos', 'error');
   const payload = {
     nombre: document.getElementById('clienteNombre').value.trim(),
-    dni,
-    celular,
+    dni, celular,
     correo: document.getElementById('clienteCorreo').value.trim() || null,
   };
   if (!payload.nombre) return toast('El nombre es obligatorio', 'error');
@@ -840,7 +859,7 @@ function venderACliente(clienteId) {
   const c = state.clientes.find(x => x.id === clienteId);
   if (c) {
     document.getElementById('ventaClienteId').value = c.id;
-    document.getElementById('buscarCliente').value = `${c.nombre} — ${c.dni}`;
+    document.getElementById('buscarCliente').value = `${c.nombre}`;
     document.getElementById('clienteSeleccionadoHint').innerHTML = `✅ ${esc(c.nombre)} — DNI ${esc(c.dni)} — Cel ${esc(c.celular)}`;
   }
 }
@@ -926,7 +945,7 @@ async function loadProductos() {
       <td><span class="ver" style="color:var(--muted);font-weight:600">Versión ${esc(p.version)}</span></td>
       <td>${esc(p.categorias?.nombre || '—')}</td>
       <td>${fmtMoney(p.precio_base)}</td>
-      <td>${esc(p.tipo_licencia)}</td>
+      <td>${tipoBadge(p.tipo_licencia)}</td>
       <td>${stockBadge}</td>
       <td><span class="badge ${p.activo?'green':'gray'}">${p.activo?'Activo':'Inactivo'}</span></td>
       <td class="actions">
@@ -942,6 +961,19 @@ function fillSelectsCategorias() {
     p => `${p.nombre} — Versión ${p.version}`, '— Selecciona producto —');
   setOptions(document.getElementById('nuevaLicProducto'), state.productos.filter(p => p.activo), 'id',
     p => `${p.nombre} — Versión ${p.version}`, '— Selecciona producto —');
+}
+function onProductoTipoChange() {
+  const tipo = document.getElementById('productoTipo').value;
+  const precio = document.getElementById('productoPrecio');
+  const hint = document.getElementById('productoPrecioHint');
+  if (tipo === 'Gratuita') {
+    precio.value = 0;
+    hint.textContent = 'Producto gratuito: precio 0 por defecto (puedes cambiarlo si decides cobrar).';
+    hint.className = 'hint warn';
+  } else {
+    hint.textContent = '';
+    hint.className = 'hint';
+  }
 }
 function openProductoModal(id=null) {
   document.getElementById('modalProductoTitle').textContent = id ? 'Editar producto' : 'Nuevo producto';
@@ -963,17 +995,19 @@ function openProductoModal(id=null) {
     document.getElementById('productoTipo').value = 'Perpetua';
     document.getElementById('productoActivo').value = 'true';
   }
+  onProductoTipoChange();
   openModal('modalProducto');
 }
 async function saveProducto() {
   const id = document.getElementById('productoId').value;
+  const tipo = document.getElementById('productoTipo').value;
   const payload = {
     nombre: document.getElementById('productoNombre').value.trim(),
     version: document.getElementById('productoVersion').value.trim() || '1.0',
     categoria_id: document.getElementById('productoCategoriaId').value || null,
     precio_base: Number(document.getElementById('productoPrecio').value) || 0,
     moneda: 'PEN',
-    tipo_licencia: document.getElementById('productoTipo').value,
+    tipo_licencia: tipo,
     activo: document.getElementById('productoActivo').value === 'true',
   };
   if (!payload.nombre) return toast('El nombre es obligatorio', 'error');
@@ -1019,7 +1053,7 @@ function renderVentas() {
       : '—';
     const lic = v.licencias;
     const licBadge = lic
-      ? `<span class="badge blue" title="${esc(lic.clave || lic.correo || lic.link_descarga || '')}">${lic.tipo === 'prueba' ? 'Prueba' : lic.tipo === 'pago' ? 'Pago' : 'Gratuita'}</span>`
+      ? `<span class="badge ${lic.tipo === 'prueba' ? 'blue' : lic.tipo === 'pago' ? 'purple' : 'gray'}" title="${esc(lic.clave || lic.correo || lic.link_descarga || '')}">${lic.tipo === 'prueba' ? 'Prueba' : lic.tipo === 'pago' ? 'Pago' : 'Gratuita'}</span>`
       : '—';
     return `<tr>
       <td>${fmtDate(v.fecha_venta)}</td>
@@ -1027,7 +1061,7 @@ function renderVentas() {
       <td>${esc(v.productos?.nombre || '—')}</td>
       <td><span class="ver" style="color:var(--muted);font-weight:600">Versión ${esc(v.version || v.productos?.version || '—')}</span></td>
       <td>${fmtMoney(v.precio_venta)}</td>
-      <td>${esc(v.tipo_licencia)}</td>
+      <td>${tipoBadge(v.tipo_licencia)}</td>
       <td>${caducaBadge}</td>
       <td>${licBadge}</td>
       <td>${estadoBadge}</td>
@@ -1086,7 +1120,6 @@ function openVentaModal(id=null) {
   openModal('modalVenta');
 }
 
-// --- Buscador de clientes ---
 function onBuscarCliente() {
   const q = document.getElementById('buscarCliente').value.trim().toLowerCase();
   const items = state.clientes.filter(c => {
@@ -1103,8 +1136,6 @@ function onBuscarCliente() {
       document.getElementById('clienteSeleccionadoHint').innerHTML = `✅ ${esc(c.nombre)} — DNI ${esc(c.dni)} — Cel ${esc(c.celular)}`;
     });
 }
-
-// --- Buscador de productos ---
 function onBuscarProducto() {
   const q = document.getElementById('buscarProducto').value.trim().toLowerCase();
   const items = state.productos.filter(p => p.activo).filter(p => {
@@ -1112,7 +1143,7 @@ function onBuscarProducto() {
     return p.nombre.toLowerCase().includes(q) || String(p.version).toLowerCase().includes(q);
   }).slice(0, 12);
   renderAcList('acProductos', items,
-    p => `<div><strong>${esc(p.nombre)}</strong> <span class="ver">Versión ${esc(p.version)}</span></div><div class="sub">${esc(p.categorias?.nombre || '')} · ${fmtMoney(p.precio_base)} · ${esc(p.tipo_licencia)}</div>`,
+    p => `<div><strong>${esc(p.nombre)}</strong> <span class="ver">Versión ${esc(p.version)}</span></div><div class="sub">${esc(p.categorias?.nombre || '')} · ${fmtMoney(p.precio_base)} · ${p.tipo_licencia}</div>`,
     p => {
       document.getElementById('ventaProductoId').value = p.id;
       document.getElementById('buscarProducto').value = p.nombre;
@@ -1128,13 +1159,25 @@ function onTipoLicenciaChange() {
   const tipo = document.getElementById('ventaTipo').value;
   const cad = document.getElementById('ventaCaducidad');
   const req = document.getElementById('reqCaducidad');
-  if (tipo === 'Perpetua') {
+  const precio = document.getElementById('ventaPrecio');
+  const hint = document.getElementById('ventaPrecioHint');
+
+  if (requiereCaducidad(tipo)) {
+    cad.disabled = false;
+    req.style.display = 'inline';
+  } else {
     cad.value = '';
     cad.disabled = true;
     req.style.display = 'none';
+  }
+
+  if (tipo === 'Gratuita') {
+    precio.value = 0;
+    hint.textContent = 'Tipo Gratuita: precio 0 por defecto (puedes cambiarlo si decides cobrar).';
+    hint.className = 'hint warn';
   } else {
-    cad.disabled = false;
-    req.style.display = 'inline';
+    hint.textContent = '';
+    hint.className = 'hint';
   }
 }
 
@@ -1168,18 +1211,17 @@ async function saveVenta() {
   const caducidad = document.getElementById('ventaCaducidad').value || null;
   if (!cliente_id) return toast('Selecciona un cliente', 'error');
   if (!producto_id) return toast('Selecciona un producto', 'error');
-  if (tipo === 'Suscripción' && !caducidad) return toast('La fecha de caducidad es obligatoria para suscripciones', 'error');
+  if (requiereCaducidad(tipo) && !caducidad) return toast(`La fecha de caducidad es obligatoria para ${tipo}`, 'error');
 
   const payload = {
-    cliente_id,
-    producto_id,
+    cliente_id, producto_id,
     precio_venta: Number(document.getElementById('ventaPrecio').value) || 0,
     moneda: 'PEN',
     tipo_licencia: tipo,
     sistema_operativo: document.getElementById('ventaSO').value.trim() || null,
     descripcion: document.getElementById('ventaDescripcion').value.trim() || null,
     datos_licencia: document.getElementById('ventaDatosLicencia').value.trim() || null,
-    fecha_caducidad: tipo === 'Perpetua' ? null : caducidad,
+    fecha_caducidad: requiereCaducidad(tipo) ? caducidad : null,
     correo_suscripcion: document.getElementById('ventaCorreoSuscripcion').value.trim() || null,
     anotaciones: document.getElementById('ventaAnotaciones').value.trim() || null,
   };
@@ -1215,7 +1257,7 @@ async function saveVenta() {
 }
 
 // ============================================================
-// ASIGNAR LICENCIA (flujo desde Licencias)
+// ASIGNAR LICENCIA
 // ============================================================
 function asignarLicencia(licId) {
   const l = state.licencias.find(x => x.id === licId);
@@ -1252,18 +1294,29 @@ function asignarLicencia(licId) {
 
   const req = document.getElementById('asignarReqCad');
   const cad = document.getElementById('asignarCaducidad');
-  if (p?.tipo_licencia === 'Perpetua') {
+  const precio = document.getElementById('asignarPrecio');
+  const hint = document.getElementById('asignarPrecioHint');
+
+  if (requiereCaducidad(p?.tipo_licencia)) {
+    cad.disabled = false;
+    req.style.display = 'inline';
+  } else {
     cad.value = '';
     cad.disabled = true;
     req.style.display = 'none';
+  }
+
+  if (p?.tipo_licencia === 'Gratuita') {
+    precio.value = 0;
+    hint.textContent = 'Producto gratuito: precio 0 por defecto (puedes cambiarlo si decides cobrar).';
+    hint.className = 'hint warn';
   } else {
-    cad.disabled = false;
-    req.style.display = 'inline';
+    hint.textContent = '';
+    hint.className = 'hint';
   }
 
   openModal('modalAsignar');
 }
-
 function onAsignarBuscarCliente() {
   const q = document.getElementById('asignarBuscarCliente').value.trim().toLowerCase();
   const items = state.clientes.filter(c => {
@@ -1280,7 +1333,6 @@ function onAsignarBuscarCliente() {
       document.getElementById('asignarClienteHint').innerHTML = `✅ ${esc(c.nombre)} — DNI ${esc(c.dni)} — Cel ${esc(c.celular)}`;
     });
 }
-
 async function confirmarAsignarLicencia() {
   const licId = document.getElementById('asignarLicId').value;
   const cliente_id = document.getElementById('asignarClienteId').value;
@@ -1290,14 +1342,14 @@ async function confirmarAsignarLicencia() {
   const p = state.productos.find(x => x.id === asignarLicenciaActual?.producto_id);
 
   if (!cliente_id) return toast('Selecciona un cliente', 'error');
-  if (p?.tipo_licencia === 'Suscripción' && !caducidad) return toast('La fecha de caducidad es obligatoria para suscripción', 'error');
+  if (requiereCaducidad(p?.tipo_licencia) && !caducidad) return toast(`La fecha de caducidad es obligatoria para ${p?.tipo_licencia}`, 'error');
 
   const { error } = await sb.rpc('vender_desde_licencia', {
     p_licencia_id: licId,
     p_cliente_id: cliente_id,
     p_precio: precio,
     p_anotaciones: anotaciones,
-    p_fecha_caducidad: p?.tipo_licencia === 'Perpetua' ? null : caducidad,
+    p_fecha_caducidad: requiereCaducidad(p?.tipo_licencia) ? caducidad : null,
     p_sistema_operativo: null,
     p_descripcion: null
   });
@@ -1366,13 +1418,11 @@ async function loadLicencias() {
   state.licencias = data;
   renderLicencias();
 }
-
 function setTabLic(t) {
   tabLicActual = t;
   document.querySelectorAll('#tabsLic .tab').forEach(b => b.classList.toggle('active', b.dataset.filtro === t));
   renderLicencias();
 }
-
 function renderLicencias() {
   const f = document.getElementById('filtroLicEstado').value;
   let rows = state.licencias;
@@ -1428,7 +1478,6 @@ function toggleLicForm(forceHide=false) {
     document.getElementById('nuevaLicCategoria').value = '';
   }
 }
-
 function onNuevaLicProductoChange() {
   const pid = document.getElementById('nuevaLicProducto').value;
   document.getElementById('nuevaLicCategoria').value = categoriaNombreDe(pid);
@@ -1437,7 +1486,6 @@ function onEditLicProductoChange() {
   const pid = document.getElementById('editLicProducto').value;
   document.getElementById('editLicCategoria').value = categoriaNombreDe(pid);
 }
-
 async function agregarLicencia() {
   const tipo = document.getElementById('nuevaLicTipo').value;
   const producto_id = document.getElementById('nuevaLicProducto').value;
@@ -1453,8 +1501,7 @@ async function agregarLicencia() {
   if (clave && (clave.length < 20 || clave.length > 25)) return toast('La clave debe tener entre 20 y 25 caracteres', 'error');
 
   const payload = {
-    tipo,
-    producto_id,
+    tipo, producto_id,
     clave, correo, password, link_descarga: link,
     estado: 'Disponible',
     fecha_expiracion: exp,
@@ -1487,7 +1534,6 @@ async function liberarLicencia(licId) {
   await loadProductos();
   renderDashboard();
 }
-
 async function eliminarLicencia(licId) {
   if (!confirm('¿Eliminar esta licencia del pool?')) return;
   const { error } = await sb.from('licencias').delete().eq('id', licId);
@@ -1497,7 +1543,6 @@ async function eliminarLicencia(licId) {
   await loadProductos();
   renderDashboard();
 }
-
 function openLicenciaEdit(licId) {
   const l = state.licencias.find(x => x.id === licId);
   if (!l) return;
@@ -1586,7 +1631,6 @@ function verBoleta(ventaId) {
   `;
   openModal('modalBoleta');
 }
-
 async function descargarBoletaPDF() {
   if (!boletaActual) return;
   const el = document.getElementById('boletaRender');
