@@ -693,9 +693,8 @@ function verBoleta(ventaId) {
   if (v.fecha_caducidad) lineas.push(`<div class="boleta-row"><span class="k">Caduca:</span><span class="v">${fmtDate(v.fecha_caducidad)}</span></div>`);
   if (v.descripcion) lineas.push(`<div class="boleta-row"><span class="k">Descripción:</span><span class="v">${esc(v.descripcion)}</span></div>`);
 
-  // Generar la URL apuntando a boleta.html
-  const urlPublica = window.location.origin + '/boleta.html'; 
-  const urlBoleta = `${urlPublica}?id=${v.id}&corr=${correlativo}`;
+  // 👇 URL CORREGIDA PARA GITHUB PAGES
+  const urlBoleta = `https://calin1357.github.io/Silicon-Ventas/boleta.html?id=${v.id}&corr=${correlativo}`;
 
   document.getElementById('boletaRender').innerHTML = `
     <div class="boleta-head">
