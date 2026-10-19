@@ -8,8 +8,8 @@
 <!-- Librerías -->
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="https://cdn.jsdelivr.net/npm/html2pdf.js@0.10.1/dist/html2pdf.bundle.min.js"></script>
-<!-- Nueva librería de QR para evitar fallos -->
-<script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.3/build/qrcode.min.js"></script>
+<!-- Nueva librería de QR infalible -->
+<script src="https://cdn.jsdelivr.net/npm/qrcode-generator@1.4.4/qrcode.min.js"></script>
 
 <style>
   :root { --bg: #f1f5f9; --panel: #fff; --ink: #0f172a; --muted: #64748b; --line: #e2e8f0; --brand: #2563eb; --brand-dark: #1d4ed8; --ok: #16a34a; --warn: #d97706; --danger: #dc2626; --radius: 12px; }
@@ -130,21 +130,30 @@
   .ac-empty { padding: 12px 14px; color: var(--muted); font-size: 13px; text-align: center; }
 
   /* Boleta y QR */
-  #boletaRender { background: #fff; padding: 32px; font-family: 'Courier New', monospace; color: #111; border-radius: 8px; }
-  .boleta-head { text-align: center; border-bottom: 2px dashed #999; padding-bottom: 16px; margin-bottom: 16px; }
-  .boleta-head img { width: 48px; height: 48px; object-fit: contain; margin-bottom: 8px; }
+  #boletaRender { background: #fff; padding: 20px; font-family: 'Courier New', monospace; color: #111; border-radius: 8px; }
+  .boleta-head { text-align: center; border-bottom: 2px dashed #999; padding-bottom: 12px; margin-bottom: 12px; }
+  
+  /* Logo ajustado para no tener espacio arriba */
+  .boleta-head img { 
+      width: 48px; 
+      height: 48px; 
+      object-fit: contain; 
+      margin: 0 auto 5px; 
+      padding: 0;
+      display: block;
+  }
+  
   .boleta-head h2 { margin: 0; font-size: 18px; font-family: 'Inter', sans-serif; }
   .boleta-head p { margin: 2px 0; font-size: 12px; color: #555; font-family: 'Inter', sans-serif; }
-  .boleta-num { font-size: 14px; font-weight: bold; margin-top: 8px; }
-  .boleta-row { display: flex; justify-content: space-between; font-size: 13px; padding: 6px 0; border-bottom: 1px dotted #ddd; }
+  .boleta-num { font-size: 13px; font-weight: bold; margin-top: 6px; }
+  .boleta-row { display: flex; justify-content: space-between; font-size: 12px; padding: 4px 0; border-bottom: 1px dotted #ddd; }
   .boleta-row .k { color: #555; } .boleta-row .v { font-weight: bold; text-align: right; max-width: 60%; word-break: break-all; }
-  .boleta-total { display: flex; justify-content: space-between; font-size: 18px; font-weight: bold; margin-top: 16px; padding-top: 12px; border-top: 2px solid #111; }
-  .boleta-foot { text-align: center; font-size: 11px; color: #777; margin-top: 20px; border-top: 1px dashed #999; padding-top: 12px; }
-  .boleta-foot .vendedor { font-size: 13px; color: #111; font-weight: bold; margin-top: 8px; }
+  .boleta-total { display: flex; justify-content: space-between; font-size: 16px; font-weight: bold; margin-top: 14px; padding-top: 10px; border-top: 2px solid #111; }
+  .boleta-foot { text-align: center; font-size: 11px; color: #777; margin-top: 18px; border-top: 1px dashed #999; padding-top: 10px; }
+  .boleta-foot .vendedor { font-size: 12px; color: #111; font-weight: bold; margin-top: 6px; }
   
-  /* Contenedor del QR */
-  #qr-boleta { display: inline-block; padding: 10px; background: #fff; border: 1px solid #e2e8f0; border-radius: 8px; }
-  #qr-boleta canvas { display: block; }
+  #qr-boleta { display: inline-block; padding: 5px; background: #fff; border: 1px solid #e2e8f0; border-radius: 8px; }
+  #qr-boleta svg { display: block; width: 100px !important; height: 100px !important; }
 
   @media (max-width: 820px) {
     #appView.show { flex-direction: column; }
@@ -586,7 +595,7 @@ function renderDashboard() {
 }
 
 // ============================================================
-// MÓDULO DE REPORTES (NUEVO)
+// MÓDULO DE REPORTES
 // ============================================================
 function generarReporte() {
   const dni = document.getElementById('repDni').value.trim();
@@ -595,15 +604,9 @@ function generarReporte() {
 
   let filtradas = state.ventas.filter(v => v.estado === 'Activa');
 
-  if (dni) {
-    filtradas = filtradas.filter(v => v.clientes?.dni === dni);
-  }
-  if (desde) {
-    filtradas = filtradas.filter(v => new Date(v.fecha_venta) >= new Date(desde + 'T00:00:00'));
-  }
-  if (hasta) {
-    filtradas = filtradas.filter(v => new Date(v.fecha_venta) <= new Date(hasta + 'T23:59:59'));
-  }
+  if (dni) filtradas = filtradas.filter(v => v.clientes?.dni === dni);
+  if (desde) filtradas = filtradas.filter(v => new Date(v.fecha_venta) >= new Date(desde + 'T00:00:00'));
+  if (hasta) filtradas = filtradas.filter(v => new Date(v.fecha_venta) <= new Date(hasta + 'T23:59:59'));
 
   const totalVentas = filtradas.reduce((s, v) => s + Number(v.precio_venta || 0), 0);
   const totalCosto = filtradas.reduce((s, v) => s + Number(v.costo_venta || 0), 0);
@@ -661,7 +664,7 @@ function openProductoModal(id=null) { document.getElementById('modalProductoTitl
 async function saveProducto() { const id = document.getElementById('productoId').value; const tipo = document.getElementById('productoTipo').value; const payload = { nombre: document.getElementById('productoNombre').value.trim(), version: document.getElementById('productoVersion').value.trim() || '1.0', categoria_id: document.getElementById('productoCategoriaId').value || null, costo_base: Number(document.getElementById('productoCosto').value) || 0, precio_base: Number(document.getElementById('productoPrecio').value) || 0, moneda: 'PEN', tipo_licencia: tipo, activo: document.getElementById('productoActivo').value === 'true' }; if (!payload.nombre) return toast('El nombre es obligatorio', 'error'); if (!payload.version) return toast('La versión es obligatoria', 'error'); if (!payload.categoria_id) return toast('La categoría es obligatoria', 'error'); let error; if (id) ({ error } = await sb.from('productos').update(payload).eq('id', id)); else ({ error } = await sb.from('productos').insert(payload)); if (error) return toast(error.message, 'error'); toast(id ? 'Producto actualizado' : 'Producto creado'); closeModal('modalProducto'); await loadProductos(); fillSelectsCategorias(); }
 
 // ============================================================
-// VENTAS (Con actualización de costo y lógica de servicio)
+// VENTAS
 // ============================================================
 async function loadVentas() { const { data, error } = await sb.from('ventas').select('*, clientes(nombre, dni, celular), productos(nombre, version, costo_base), licencias!ventas_licencia_id_fkey(clave, correo, link_descarga, tipo)').order('fecha_venta', { ascending: false }); if (error) return toast('Error ventas: ' + error.message, 'error'); state.ventas = data; renderVentas(); }
 function renderVentas() {
@@ -940,12 +943,11 @@ function verBoleta(ventaId) {
   if (v.fecha_caducidad) lineas.push(`<div class="boleta-row"><span class="k">Caduca:</span><span class="v">${fmtDate(v.fecha_caducidad)}</span></div>`);
   if (v.descripcion) lineas.push(`<div class="boleta-row"><span class="k">Descripción:</span><span class="v">${esc(v.descripcion)}</span></div>`);
 
-  // Generar la URL para el QR (Asegúrate de que esta ruta sea la correcta en GitHub Pages)
   const urlBoleta = `https://calin1357.github.io/Silicon-Ventas/boleta.html?id=${v.id}&corr=${correlativo}`;
 
   document.getElementById('boletaRender').innerHTML = `
     <div class="boleta-head">
-      <img src="imagenes/logo_boleta.png" alt="Logo" class="boleta-logo">
+      <img src="imagenes/logo_boleta.png" alt="Logo" class="boleta-logo" style="margin-top:0;">
       <h2>Silicon Ventas</h2>
       <p>Servicios informáticos y licencias de software</p>
       <p class="boleta-num">Boleta N° ${correlativo}</p>
@@ -954,10 +956,9 @@ function verBoleta(ventaId) {
     ${lineas.join('')}
     <div class="boleta-total"><span>TOTAL</span><span>${fmtMoney(v.precio_venta)}</span></div>
     
-    <div style="text-align: center; margin-top: 24px;">
-        <!-- Contenedor del QR -->
-        <div id="qr-boleta" style="display: inline-block; padding: 10px; background: #fff; border: 1px solid #e2e8f0; border-radius: 8px;"></div>
-        <p style="font-size: 12px; color: #777; margin-top: 8px;">Escanee para ver su boleta digital</p>
+    <div style="text-align: center; margin-top: 16px;">
+        <div id="qr-boleta" style="display: inline-block; padding: 5px; background: #fff; border: 1px solid #e2e8f0; border-radius: 8px;"></div>
+        <p style="font-size: 11px; color: #777; margin-top: 4px;">Escanee para ver su boleta digital</p>
     </div>
 
     <div class="boleta-foot">
@@ -970,23 +971,42 @@ function verBoleta(ventaId) {
 
   setTimeout(() => {
       const qrContainer = document.getElementById("qr-boleta");
-      qrContainer.innerHTML = ""; // Limpiar por si acaso
-      
-      // Usamos la librería QRCode.toCanvas (más estable)
-      QRCode.toCanvas(document.createElement('canvas'), urlBoleta, { width: 100, margin: 1 }, function (error, canvas) {
-          if (error) {
-              console.error(error);
-              qrContainer.innerHTML = '<p style="font-size:10px;color:red">Error al generar QR</p>';
-              return;
-          }
-          qrContainer.appendChild(canvas);
-      });
+      qrContainer.innerHTML = ""; 
+      try {
+          const qr = qrcode(0, 'H'); 
+          qr.addData(urlBoleta);
+          qr.make();
+          qrContainer.innerHTML = qr.createSvgTag({ scalable: true, margin: 1, size: 100 });
+      } catch (e) {
+          console.error(e);
+          qrContainer.innerHTML = '<p style="font-size:10px;color:red">Error QR</p>';
+      }
   }, 50);
 
   openModal('modalBoleta');
 }
 
-async function descargarBoletaPDF() { if (!boletaActual) return; const el = document.getElementById('boletaRender'); const opt = { margin: 10, filename: `Boleta_${boletaActual.correlativo}.pdf`, image: { type: 'jpeg', quality: 0.98 }, html2canvas: { scale: 2 }, jsPDF: { unit: 'mm', format: 'a5', orientation: 'portrait' } }; try { await html2pdf().set(opt).from(el).save(); toast('PDF descargado'); } catch (e) { toast('Error generando PDF: ' + e.message, 'error'); } }
+async function descargarBoletaPDF() { 
+    if (!boletaActual) return; 
+    const el = document.getElementById('boletaRender'); 
+    
+    // Configuración para forzar que todo quepa en 1 sola hoja A5
+    const opt = { 
+        margin: 5, 
+        filename: `Boleta_${boletaActual.correlativo}.pdf`, 
+        image: { type: 'jpeg', quality: 0.98 }, 
+        html2canvas: { scale: 2, useCORS: true, scrollY: 0 }, 
+        jsPDF: { unit: 'mm', format: 'a5', orientation: 'portrait' },
+        pagebreak: { mode: ['avoid-all', 'css', 'legacy'] } // Evita cortes feos
+    }; 
+    
+    try { 
+        await html2pdf().set(opt).from(el).save(); 
+        toast('PDF descargado'); 
+    } catch (e) { 
+        toast('Error generando PDF: ' + e.message, 'error'); 
+    } 
+}
 
 // INICIO
 resetInactividad();
