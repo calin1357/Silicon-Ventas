@@ -48,7 +48,7 @@
     <div id="authSection" class="auth-card">
         <h1>🛡️ Consulta tu Boleta</h1>
         <p>Para proteger tu privacidad, por favor ingresa el <strong>DNI de la persona que realizó la compra</strong> para visualizar la boleta digital.</p>
-        <input type="text" id="inputDni" placeholder="Ej. 12345678" maxlength="8" inputmode="numeric" oninput="this.value = this.value.replace(/\D/g,'')" />
+        <input type="text" id="inputDni" placeholder="Ej. 12345678" maxlength="8" inputmode="numeric" oninput="this.value = this.value.replace(/\D/g,'')" onkeydown="if(event.key==='Enter') validarDni()" />
         <button onclick="validarDni()">Ver mi Boleta</button>
         <div id="errorMsg" class="error-msg">El DNI no coincide con el comprador de esta boleta.</div>
     </div>
@@ -56,6 +56,9 @@
     <!-- Sección de la Boleta (oculta al inicio) -->
     <div id="boletaSection" class="boleta-card">
         <div id="boletaContent"></div>
+        <div style="text-align: center; margin-top: 20px;">
+            <a href="boleta.html" style="color: var(--brand); text-decoration: none; font-size: 14px; font-weight: 600;">← Consultar otra boleta</a>
+        </div>
     </div>
 </div>
 
@@ -71,9 +74,15 @@
     const fmtMoney = (n) => 'S/ ' + Number(n || 0).toFixed(2);
     const fmtDate = (d) => new Date(d).toLocaleDateString('es-PE', { year:'numeric', month:'short', day:'numeric' });
 
+    // Si no hay ID de venta en la URL, mostramos un mensaje
+    if (!ventaId) {
+        document.getElementById('authSection').innerHTML = '<h1>⚠️ Enlace inválido</h1><p>No se encontró una boleta asociada a este código QR.</p>';
+    }
+
     async function validarDni() {
         const dni = document.getElementById('inputDni').value.trim();
         const err = document.getElementById('errorMsg');
+        
         if (dni.length !== 8) {
             err.textContent = 'Por favor, ingresa un DNI válido de 8 dígitos.';
             err.style.display = 'block';
@@ -82,7 +91,7 @@
 
         err.style.display = 'none';
         
-        // Llamamos a la función segura de la BD
+        // Llamamos a la función segura de la BD que valida el DNI y la Venta
         const { data, error } = await sb.rpc('consultar_boleta_por_dni', { 
             p_venta_id: ventaId, 
             p_dni: dni 
@@ -90,7 +99,7 @@
 
         if (error) {
             console.error(error);
-            err.textContent = 'Error de conexión. Intenta de nuevo.';
+            err.textContent = 'Error de conexión. Intenta de nuevo más tarde.';
             err.style.display = 'block';
             return;
         }
