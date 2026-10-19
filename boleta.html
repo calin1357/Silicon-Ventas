@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Consulta de Boleta - Silicon Ventas</title>
+    <title>Consulta de Boletas - Silicon Ventas</title>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <style>
         :root { --bg: #f1f5f9; --panel: #fff; --ink: #0f172a; --muted: #64748b; --line: #e2e8f0; --brand: #2563eb; }
@@ -12,7 +12,7 @@
         .container { width: 100%; max-width: 500px; }
         
         /* Logo principal */
-        .main-logo { width: 48px; height: 48px; object-fit: contain; display: block; margin: 0 auto 15px; }
+        .main-logo { width: 64px; height: 64px; object-fit: contain; display: block; margin: 0 auto 15px; }
         
         /* Tarjeta de Validación DNI */
         .auth-card { background: var(--panel); padding: 30px; border-radius: 12px; box-shadow: 0 10px 30px rgba(0,0,0,.05); text-align: center; }
@@ -24,12 +24,21 @@
         .auth-card button:hover { background: #1d4ed8; }
         .error-msg { color: #dc2626; font-size: 13px; margin-top: 15px; display: none; }
 
-        /* Tarjeta de Boleta */
+        /* Tarjeta de Lista de Boletas */
+        .list-card { background: var(--panel); padding: 20px; border-radius: 12px; box-shadow: 0 10px 30px rgba(0,0,0,.05); display: none; }
+        .list-card h2 { margin: 0 0 15px; font-size: 18px; text-align: center; }
+        .venta-item { display: flex; justify-content: space-between; align-items: center; padding: 12px; border: 1px solid var(--line); border-radius: 8px; margin-bottom: 10px; cursor: pointer; transition: 0.2s; }
+        .venta-item:hover { background: #f8fafc; border-color: var(--brand); }
+        .venta-info strong { display: block; font-size: 14px; color: var(--ink); margin-bottom: 4px; }
+        .venta-info span { font-size: 12px; color: var(--muted); }
+        .venta-precio { font-weight: 700; font-size: 14px; color: var(--brand); }
+
+        /* Tarjeta de Boleta Individual */
         .boleta-card { background: var(--panel); padding: 30px; border-radius: 12px; box-shadow: 0 10px 30px rgba(0,0,0,.05); font-family: 'Courier New', monospace; color: #111; display: none; }
         .boleta-head { text-align: center; border-bottom: 2px dashed #999; padding-bottom: 12px; margin-bottom: 12px; }
         
-        /* Logo en la boleta sin espacio arriba */
-        .boleta-logo { width: 48px; height: 48px; object-fit: contain; display: block; margin: 0 auto 5px; padding: 0; }
+        /* Logo un poco más grande en la boleta */
+        .boleta-logo { width: 72px; height: 72px; object-fit: contain; display: block; margin: 0 auto 8px; padding: 0; }
         
         .boleta-head h2 { margin: 0; font-size: 18px; font-family: 'Inter', sans-serif; }
         .boleta-head p { margin: 2px 0; font-size: 12px; color: #555; font-family: 'Inter', sans-serif; }
@@ -54,21 +63,27 @@
 <body>
 
 <div class="container">
-    <!-- Sección de Validación DNI -->
+    <!-- Sección 1: Validación DNI (para QR o búsqueda general) -->
     <div id="authSection" class="auth-card">
         <img src="imagenes/logo.png" alt="Logo" class="main-logo">
-        <h1>Consulta tu Boleta</h1>
-        <p>Para proteger tu privacidad, por favor ingresa el <strong>DNI de la persona que realizó la compra</strong>.</p>
+        <h1>Consulta tus Boletas</h1>
+        <p>Ingresa tu DNI para ver tus compras.</p>
         <input type="text" id="inputDni" placeholder="Ej. 12345678" maxlength="8" inputmode="numeric" oninput="this.value = this.value.replace(/\D/g,'')" onkeydown="if(event.key==='Enter') validarDni()" />
-        <button onclick="validarDni()">Ver mi Boleta</button>
-        <div id="errorMsg" class="error-msg">El DNI no coincide con el comprador de esta boleta.</div>
+        <button onclick="validarDni()">Consultar</button>
+        <div id="errorMsg" class="error-msg">El DNI no coincide con ninguna compra.</div>
     </div>
 
-    <!-- Sección de la Boleta -->
+    <!-- Sección 2: Lista de Boletas (Si tiene varias) -->
+    <div id="listSection" class="list-card">
+        <h2>Tus Compras</h2>
+        <div id="listaCompras"></div>
+        <button class="btn-volver" onclick="volverAlInicio()">← Buscar otro DNI</button>
+    </div>
+
+    <!-- Sección 3: Boleta Individual -->
     <div id="boletaSection" class="boleta-card">
         <div id="boletaContent"></div>
-        <!-- Botón para volver al inicio limpiando la URL -->
-        <button class="btn-volver" onclick="window.location.href='boleta.html'">← Consultar otra boleta</button>
+        <button class="btn-volver" onclick="volverAlInicio()">← Volver</button>
     </div>
 </div>
 
@@ -78,14 +93,16 @@
     const sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
     const params = new URLSearchParams(window.location.search);
-    const ventaId = params.get('id');
-    const correlativo = params.get('corr') || 'Digital';
+    const ventaIdQR = params.get('id'); // Si viene del QR
+    const correlativoQR = params.get('corr') || 'Digital';
 
     const fmtMoney = (n) => 'S/ ' + Number(n || 0).toFixed(2);
     const fmtDate = (d) => new Date(d).toLocaleDateString('es-PE', { year:'numeric', month:'short', day:'numeric' });
 
-    if (!ventaId) {
-        document.getElementById('authSection').innerHTML = '<h1>⚠️ Enlace inválido</h1><p>No se encontró una boleta asociada a este código QR.</p>';
+    // 1. Lógica principal al cargar
+    function volverAlInicio() {
+        // Redirige a la URL base de la página sin parámetros, arreglando el error 404
+        window.location.href = window.location.pathname; 
     }
 
     async function validarDni() {
@@ -99,31 +116,77 @@
         }
 
         err.style.display = 'none';
-        
-        // Llamamos a la función segura de la BD
-        const { data, error } = await sb.rpc('consultar_boleta_por_dni', { 
-            p_venta_id: ventaId, 
-            p_dni: dni 
-        });
-
-        if (error) {
-            console.error(error);
-            err.textContent = 'Error de conexión. Intenta de nuevo más tarde.';
-            err.style.display = 'block';
-            return;
-        }
-
-        if (!data || data.length === 0) {
-            err.textContent = 'El DNI no coincide con el comprador de esta boleta.';
-            err.style.display = 'block';
-            return;
-        }
-
-        // DNI correcto: Mostramos la boleta
-        const v = data[0];
         document.getElementById('authSection').style.display = 'none';
-        document.getElementById('boletaSection').style.display = 'block';
 
+        // CASO A: Venimos de un QR (Buscar solo esa boleta)
+        if (ventaIdQR) {
+            const { data, error } = await sb.rpc('consultar_boleta_por_dni', { p_venta_id: ventaIdQR, p_dni: dni });
+            
+            if (error || !data || data.length === 0) {
+                document.getElementById('authSection').style.display = 'block';
+                err.textContent = 'El DNI no coincide con el comprador de esta boleta.';
+                err.style.display = 'block';
+                return;
+            }
+            mostrarBoleta(data[0], correlativoQR);
+        } 
+        // CASO B: Búsqueda general (Listar todas sus compras)
+        else {
+            const { data, error } = await sb.rpc('consultar_compras_por_dni', { p_dni: dni });
+            
+            if (error || !data || data.length === 0) {
+                document.getElementById('authSection').style.display = 'block';
+                err.textContent = 'No se encontraron compras registradas con este DNI.';
+                err.style.display = 'block';
+                return;
+            }
+
+            if (data.length === 1) {
+                // Si solo tiene 1, la mostramos directo
+                mostrarBoleta(data[0], 'Digital');
+            } else {
+                // Si tiene varias, mostramos la lista
+                mostrarLista(data);
+            }
+        }
+    }
+
+    // 2. Mostrar Lista de Compras
+    function mostrarLista(compras) {
+        document.getElementById('listSection').style.display = 'block';
+        document.getElementById('listaCompras').innerHTML = compras.map((c, index) => `
+            <div class="venta-item" onclick="verBoletaDeLista(${index})">
+                <div class="venta-info">
+                    <strong>${c.producto_nombre}</strong>
+                    <span>${fmtDate(c.fecha_venta)}</span>
+                </div>
+                <div class="venta-precio">${fmtMoney(c.precio_venta)}</div>
+            </div>
+        `).join('');
+
+        // Guardamos temporalmente los datos para no volver a consultar
+        window._comprasActuales = compras;
+    }
+
+    function verBoletaDeLista(index) {
+        const compra = window._comprasActuales[index];
+        document.getElementById('listSection').style.display = 'none';
+        
+        // Para mostrar los detalles completos (licencia, etc.), volvemos a consultar la boleta específica
+        // Como ya validamos el DNI antes, pasamos el DNI del input
+        const dni = document.getElementById('inputDni').value.trim();
+        
+        sb.rpc('consultar_boleta_por_dni', { p_venta_id: compra.id, p_dni: dni }).then(({data, error}) => {
+            if (!error && data.length > 0) {
+                mostrarBoleta(data[0], 'Digital');
+            }
+        });
+    }
+
+    // 3. Mostrar Boleta Individual (Render)
+    function mostrarBoleta(v, correlativo) {
+        document.getElementById('boletaSection').style.display = 'block';
+        
         const lineas = [];
         if (v.cliente_dni) lineas.push(`<div class="boleta-row"><span class="k">DNI:</span><span class="v">${v.cliente_dni}</span></div>`);
         lineas.push(`<div class="boleta-row"><span class="k">Cliente:</span><span class="v">${v.cliente_nombre}</span></div>`);
@@ -138,7 +201,6 @@
 
         document.getElementById('boletaContent').innerHTML = `
             <div class="boleta-head">
-                <!-- Logo 48x48 en boleta -->
                 <img src="imagenes/logo_boleta.png" alt="Logo" class="boleta-logo">
                 <h2>Silicon Ventas</h2>
                 <p>Servicios informáticos y licencias de software</p>
