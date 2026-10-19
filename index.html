@@ -8,7 +8,7 @@
 <!-- Librerías -->
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="https://cdn.jsdelivr.net/npm/html2pdf.js@0.10.1/dist/html2pdf.bundle.min.js"></script>
-<!-- Nueva librería de QR infalible -->
+<!-- Librería de QR SVG (Infalible) -->
 <script src="https://cdn.jsdelivr.net/npm/qrcode-generator@1.4.4/qrcode.min.js"></script>
 
 <style>
@@ -535,6 +535,27 @@ function categoriaNombreDe(productoId) { const p = state.productos.find(x => x.i
 function stockProducto(productoId) { return state.licencias.filter(l => l.estado === 'Disponible' && l.producto_id === productoId).length; }
 function requiereCaducidad(tipo) { return tipo === 'Suscripción' || tipo === 'Anual'; }
 function tipoBadge(tipo) { if (tipo === 'Gratuita') return '<span class="badge teal">Gratuita</span>'; if (tipo === 'Anual') return '<span class="badge orange">Anual</span>'; if (tipo === 'Suscripción') return '<span class="badge blue">Suscripción</span>'; return '<span class="badge gray">Perpetua</span>'; }
+
+// ============================================================
+// AUTOCOMPLETADO (VITAL PARA LAS VENTAS)
+// ============================================================
+function renderAcList(container, items, renderItem, onPick) { 
+    const el = document.getElementById(container); 
+    if (!items.length) { 
+        el.innerHTML = '<div class="ac-empty">Sin resultados</div>'; 
+        el.classList.add('show'); 
+        return; 
+    } 
+    el.innerHTML = items.map((it, i) => `<div class="ac-item" data-i="${i}">${renderItem(it)}</div>`).join(''); 
+    el.classList.add('show'); 
+    el.querySelectorAll('.ac-item').forEach(div => { 
+        div.onclick = () => { 
+            onPick(items[parseInt(div.dataset.i, 10)]); 
+            el.classList.remove('show'); 
+        }; 
+    }); 
+}
+function hideAc(container) { document.getElementById(container).classList.remove('show'); }
 
 // ============================================================
 // LÓGICA DE SESIÓN POR INACTIVIDAD
