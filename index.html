@@ -105,7 +105,7 @@
   .boleta-total { display: flex; justify-content: space-between; font-size: 16px; font-weight: bold; margin-top: 14px; padding-top: 10px; border-top: 2px solid #111; }
   .boleta-foot { text-align: center; font-size: 11px; color: #777; margin-top: 18px; border-top: 1px dashed #999; padding-top: 10px; }
   .boleta-foot .vendedor { font-size: 12px; color: #111; font-weight: bold; margin-top: 6px; }
-  @media (max-width: 820px) { #appView.show { flex-direction: column; } .sidebar { width: 100%; flex-direction: row; overflow-x: auto; padding: 10px; } .sidebar .brand, .sidebar .user-box { display: none; } .sidebar .nav-item { white-space: nowrap; width: auto; } .main { padding: 18px 14px; } .form-grid { grid-template-columns: 1fr; } }
+  @media (max-width: 820px) { #appView.show { flex-direction: column; } .sidebar { width: 100%; flex-direction: row; overflow-x: auto; padding: 10px; } .sidebar .brand, .sidebar .user-box { display: none; } .sidebar .nav-item { white-space: nowrap; width: auto; } .main { padding: 18px 14px; } .form-grid { grid-template-columns: 1fr; } .card { padding: 16px; } .card-head { flex-direction: column; align-items: flex-start; } .actions { flex-direction: column; } }
 </style>
 </head>
 <body>
@@ -662,7 +662,13 @@ async function agregarLicencia() {
   toggleLicForm(true); await loadLicencias(); await loadProductos(); renderDashboard();
 }
 async function liberarLicencia(licId) { if (!confirm('¿Liberar esta licencia? Volverá a Disponible y se desvinculará del cliente.')) return; const { error } = await sb.rpc('liberar_licencia', { p_licencia_id: licId, p_reutilizar: true }); if (error) return toast(error.message, 'error'); toast('Licencia liberada'); await loadLicencias(); await loadProductos(); renderDashboard(); }
-async function eliminarLicencia(licId) { if (!confirm('¿Eliminar esta licencia del pool?')) return; const { error } = await sb.from('licencias').delete().eq('id', licId); if (error) return toast(error.message, 'error'); toast('Licencia eliminada'); await loadLicencias(); await loadProductos(); renderDashboard(); }
+async function eliminarLicencia(licId) { 
+  if (!confirm('¿Eliminar esta licencia del pool?')) return; 
+  const { error } = await sb.from('licencias').delete().eq('id', licId); 
+  if (error) return toast('Error: ' + error.message, 'error'); 
+  toast('Licencia eliminada'); 
+  await loadLicencias(); await loadProductos(); renderDashboard(); 
+}
 function openLicenciaEdit(licId) { const l = state.licencias.find(x => x.id === licId); if (!l) return; document.getElementById('editLicId').value = l.id; document.getElementById('editLicTipo').value = l.tipo; document.getElementById('editLicEstado').value = l.estado; document.getElementById('editLicProducto').value = l.producto_id || ''; document.getElementById('editLicCategoria').value = categoriaNombreDe(l.producto_id); document.getElementById('editLicExp').value = l.fecha_expiracion || ''; document.getElementById('editLicClave').value = l.clave || ''; document.getElementById('editLicCorreo').value = l.correo || ''; document.getElementById('editLicPass').value = l.password || ''; document.getElementById('editLicLink').value = l.link_descarga || ''; document.getElementById('editLicNotas').value = l.notas || ''; openModal('modalLicenciaEdit'); }
 async function saveLicenciaEdit() { const id = document.getElementById('editLicId').value; const producto_id = document.getElementById('editLicProducto').value; const clave = document.getElementById('editLicClave').value.trim() || null; if (!producto_id) return toast('El producto es obligatorio', 'error'); if (clave && (clave.length < 20 || clave.length > 25)) return toast('La clave debe tener entre 20 y 25 caracteres', 'error'); const payload = { tipo: document.getElementById('editLicTipo').value, estado: document.getElementById('editLicEstado').value, producto_id, fecha_expiracion: document.getElementById('editLicExp').value || null, clave, correo: document.getElementById('editLicCorreo').value.trim() || null, password: document.getElementById('editLicPass').value || null, link_descarga: document.getElementById('editLicLink').value.trim() || null, notas: document.getElementById('editLicNotas').value.trim() || null }; if (!payload.clave && !payload.correo && !payload.link_descarga) return toast('Debe haber al menos clave, correo o link', 'error'); const { error } = await sb.from('licencias').update(payload).eq('id', id); if (error) { if (error.code === '23505') return toast('Esta clave ya está registrada para este producto', 'error'); return toast(error.message, 'error'); } toast('Licencia actualizada'); closeModal('modalLicenciaEdit'); await loadLicencias(); await loadProductos(); }
 
@@ -671,10 +677,8 @@ function verBoleta(ventaId) {
   const correlativo = nextCorrelativo(); boletaActual = { venta: v, correlativo };
   const lineas = [];
   
-  // Celular eliminado
   if (v.clientes?.dni) lineas.push(`<div class="boleta-row"><span class="k">DNI:</span><span class="v">${esc(v.clientes.dni)}</span></div>`);
   lineas.push(`<div class="boleta-row"><span class="k">Cliente:</span><span class="v">${esc(v.clientes?.nombre || '—')}</span></div>`);
-  
   lineas.push(`<div class="boleta-row"><span class="k">Producto:</span><span class="v">${esc(v.productos?.nombre || '—')}</span></div>`);
   lineas.push(`<div class="boleta-row"><span class="k">Versión:</span><span class="v">${esc(v.version || v.productos?.version || '—')}</span></div>`);
   
