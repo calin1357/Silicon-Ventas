@@ -11,6 +11,9 @@
         body { margin: 0; font-family: 'Inter', system-ui, sans-serif; background: var(--bg); color: var(--ink); display: flex; justify-content: center; align-items: flex-start; min-height: 100vh; padding: 20px; }
         .container { width: 100%; max-width: 500px; }
         
+        /* Logo principal */
+        .main-logo { width: 48px; height: 48px; object-fit: contain; display: block; margin: 0 auto 15px; }
+        
         /* Tarjeta de Validación DNI */
         .auth-card { background: var(--panel); padding: 30px; border-radius: 12px; box-shadow: 0 10px 30px rgba(0,0,0,.05); text-align: center; }
         .auth-card h1 { margin: 0 0 10px; font-size: 22px; }
@@ -24,6 +27,8 @@
         /* Tarjeta de Boleta */
         .boleta-card { background: var(--panel); padding: 30px; border-radius: 12px; box-shadow: 0 10px 30px rgba(0,0,0,.05); font-family: 'Courier New', monospace; color: #111; display: none; }
         .boleta-head { text-align: center; border-bottom: 2px dashed #999; padding-bottom: 12px; margin-bottom: 12px; }
+        /* Logo en la boleta 48x48 */
+        .boleta-logo { width: 48px; height: 48px; object-fit: contain; display: block; margin: 0 auto 10px; }
         .boleta-head h2 { margin: 0; font-size: 18px; font-family: 'Inter', sans-serif; }
         .boleta-head p { margin: 2px 0; font-size: 12px; color: #555; font-family: 'Inter', sans-serif; }
         .boleta-num { font-size: 13px; font-weight: bold; margin-top: 6px; }
@@ -34,6 +39,9 @@
         .boleta-foot { text-align: center; font-size: 11px; color: #777; margin-top: 18px; border-top: 1px dashed #999; padding-top: 10px; }
         .boleta-foot .vendedor { font-size: 12px; color: #111; font-weight: bold; margin-top: 6px; }
         
+        .btn-volver { display: block; width: 100%; text-align: center; margin-top: 20px; padding: 12px; background: #e2e8f0; color: #0f172a; border: none; border-radius: 8px; font-size: 14px; font-weight: 600; text-decoration: none; cursor: pointer; transition: 0.2s; }
+        .btn-volver:hover { background: #cbd5e1; }
+
         @media (max-width: 600px) {
             .auth-card, .boleta-card { padding: 20px; }
             .boleta-row { flex-direction: column; align-items: flex-start; }
@@ -46,19 +54,20 @@
 <div class="container">
     <!-- Sección de Validación DNI -->
     <div id="authSection" class="auth-card">
-        <h1>🛡️ Consulta tu Boleta</h1>
-        <p>Para proteger tu privacidad, por favor ingresa el <strong>DNI de la persona que realizó la compra</strong> para visualizar la boleta digital.</p>
+        <!-- Logo 48x48 -->
+        <img src="imagenes/logo.png" alt="Logo" class="main-logo">
+        <h1>Consulta tu Boleta</h1>
+        <p>Para proteger tu privacidad, por favor ingresa el <strong>DNI de la persona que realizó la compra</strong>.</p>
         <input type="text" id="inputDni" placeholder="Ej. 12345678" maxlength="8" inputmode="numeric" oninput="this.value = this.value.replace(/\D/g,'')" onkeydown="if(event.key==='Enter') validarDni()" />
         <button onclick="validarDni()">Ver mi Boleta</button>
         <div id="errorMsg" class="error-msg">El DNI no coincide con el comprador de esta boleta.</div>
     </div>
 
-    <!-- Sección de la Boleta (oculta al inicio) -->
+    <!-- Sección de la Boleta -->
     <div id="boletaSection" class="boleta-card">
         <div id="boletaContent"></div>
-        <div style="text-align: center; margin-top: 20px;">
-            <a href="boleta.html" style="color: var(--brand); text-decoration: none; font-size: 14px; font-weight: 600;">← Consultar otra boleta</a>
-        </div>
+        <!-- Botón para volver al inicio limpiando la URL -->
+        <button class="btn-volver" onclick="window.location.href='boleta.html'">← Consultar otra boleta</button>
     </div>
 </div>
 
@@ -74,7 +83,6 @@
     const fmtMoney = (n) => 'S/ ' + Number(n || 0).toFixed(2);
     const fmtDate = (d) => new Date(d).toLocaleDateString('es-PE', { year:'numeric', month:'short', day:'numeric' });
 
-    // Si no hay ID de venta en la URL, mostramos un mensaje
     if (!ventaId) {
         document.getElementById('authSection').innerHTML = '<h1>⚠️ Enlace inválido</h1><p>No se encontró una boleta asociada a este código QR.</p>';
     }
@@ -91,7 +99,6 @@
 
         err.style.display = 'none';
         
-        // Llamamos a la función segura de la BD que valida el DNI y la Venta
         const { data, error } = await sb.rpc('consultar_boleta_por_dni', { 
             p_venta_id: ventaId, 
             p_dni: dni 
@@ -110,7 +117,6 @@
             return;
         }
 
-        // DNI correcto: Mostramos la boleta
         const v = data[0];
         document.getElementById('authSection').style.display = 'none';
         document.getElementById('boletaSection').style.display = 'block';
@@ -129,7 +135,9 @@
 
         document.getElementById('boletaContent').innerHTML = `
             <div class="boleta-head">
-                <h2>🛡️ Silicon Ventas</h2>
+                <!-- Logo 48x48 en boleta -->
+                <img src="imagenes/logo_boleta.png" alt="Logo" class="boleta-logo">
+                <h2>Silicon Ventas</h2>
                 <p>Servicios informáticos y licencias de software</p>
                 <p class="boleta-num">Boleta N° ${correlativo}</p>
                 <p>Fecha: ${fmtDate(v.fecha_venta)}</p>
